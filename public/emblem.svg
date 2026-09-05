@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Government of India State Emblem (placeholder)">
+  <circle cx="60" cy="60" r="58" fill="#ffffff" stroke="#003366" stroke-width="4"/>
+  <circle cx="60" cy="60" r="46" fill="none" stroke="#003366" stroke-width="1.5"/>
+
+  <g stroke="#003366" stroke-width="3" stroke-linecap="round">
+    <line x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(30 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(60 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(90 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(120 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(150 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(180 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(210 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(240 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(270 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(300 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+    <line transform="rotate(330 60 60)" x1="60" y1="16" x2="60" y2="104"/>
+  </g>
+  <circle cx="60" cy="60" r="5" fill="#003366"/>
+</svg>
