@@ -1,13 +1,4 @@
-/**
- * Compliance Module
- *
- * Responsibilities: Legal Metrology rules, rule engine,
- * compliance assessment and evaluation
- *
- * Structure:
- * - components/   → RuleDisplay, ComplianceReport, etc.
- * - pages/        → ComplianceCheck, RuleEngine, Results
- * - services/     → Rule engine API, compliance assessment
- * - hooks/        → useCompliance, useRuleEngine
- * - utils/        → Rule evaluation helpers
- */
+// src/modules/compliance/index.js
+export { runComplianceAudit } from './engine/complianceEngine.js';
+export { COMPLIANCE_STATUS, ACTION_PRIORITY, GENERAL_RULES } from './rules/generalRules.js';
+export { selectApplicableRules } from './selector/ruleSelector.js';
