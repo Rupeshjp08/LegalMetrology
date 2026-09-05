@@ -68,5 +68,15 @@ export const GENERAL_RULES = [
     legalReference: 'Rule 6(1)(d) — Date of packaging/manufacturing',
     description: 'Month and year of manufacture or packaging must be declared (MM/YYYY).',
     evaluator: 'evaluatePackagingDate'
+  },
+  {
+    ruleId: 'LM-R6-07-USP',
+    ruleName: 'Unit Sale Price (USP) Declaration & Calculation',
+    field: 'unitSalePrice',
+    mandatory: false,
+    legalReference: 'Rule 6(1)(h) — Mandatory Unit Sale Price for commodities > 1kg / 1L',
+    description: 'Unit sale price must be declared and correctly calculated for packages ≥ 1kg or 1L.',
+    evaluator: 'evaluateUnitSalePrice'
   }
+  
 ];

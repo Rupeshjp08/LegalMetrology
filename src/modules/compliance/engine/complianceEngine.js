@@ -17,11 +17,14 @@ export function runComplianceAudit(scanPayload) {
 
   applicableRules.forEach((rule) => {
     const fieldData = declarations[rule.field];
-    const evaluatorFn = Evaluators[rule.evaluator];
+const evaluatorFn = Evaluators[rule.evaluator];
 
-    let result;
+let result;
     if (typeof evaluatorFn === 'function') {
-      result = evaluatorFn(fieldData, scanMetadata);
+      // Pass declarations directly for multi-field cross verification
+      result = rule.field === 'unitSalePrice' 
+        ? evaluatorFn(declarations, scanMetadata) 
+        : evaluatorFn(fieldData, scanMetadata); 
     } else {
       result = {
         status: COMPLIANCE_STATUS.VERIFICATION_REQUIRED,

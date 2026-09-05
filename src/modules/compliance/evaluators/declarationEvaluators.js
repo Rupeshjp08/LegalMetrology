@@ -173,3 +173,87 @@ export function evaluatePackagingDate(fieldData, scanMetadata) {
     recommendedAction: 'NONE'
   };
 }
+// Append to src/modules/compliance/evaluators/declarationEvaluators.js
+
+export function evaluateUnitSalePrice(declarations, scanMetadata) {
+  const mrpData = declarations?.mrp;
+  const netQtyData = declarations?.netQuantity;
+  const uspData = declarations?.unitSalePrice;
+
+  // If MRP or Net Qty is missing, defer to their individual checks
+  if (!mrpData?.detected || !netQtyData?.detected) {
+    return {
+      status: COMPLIANCE_STATUS.VERIFICATION_REQUIRED,
+      priority: ACTION_PRIORITY.MANUAL_VERIFICATION,
+      message: 'Unit Sale Price evaluation deferred: Base MRP or Net Quantity is unavailable.',
+      recommendedAction: 'VERIFY_BASE_DECLARATIONS'
+    };
+  }
+
+  // Parse numeric values
+  const mrpMatch = mrpData.rawText?.replace(/,/g, '').match(/\d+(\.\d+)?/);
+  const qtyMatch = netQtyData.rawText?.match(/(\d+(\.\d+)?)\s*(kg|g|l|ml|ltr)/i);
+
+  if (!mrpMatch || !qtyMatch) {
+    return {
+      status: COMPLIANCE_STATUS.WARNING,
+      priority: ACTION_PRIORITY.REVIEW_RECOMMENDED,
+      message: 'Could not extract numeric values from MRP or Net Quantity to verify USP calculation.',
+      recommendedAction: 'OFFICER_REVIEW'
+    };
+  }
+
+  const mrpValue = parseFloat(mrpMatch[0]);
+  const qtyValue = parseFloat(qtyMatch[1]);
+  const unit = qtyMatch[3].toLowerCase();
+
+  // Determine standard base unit in grams / ml
+  let totalGramsOrMl = qtyValue;
+  if (unit === 'kg' || unit === 'l' || unit === 'ltr') {
+    totalGramsOrMl = qtyValue * 1000;
+  }
+
+  // Mandatory USP threshold: packages > 1kg or > 1L (or items sold by number > 1)
+  const isMandatory = totalGramsOrMl >= 1000;
+
+  if (isMandatory && (!uspData || !uspData.detected || !uspData.rawText)) {
+    return {
+      status: COMPLIANCE_STATUS.POTENTIAL_NON_COMPLIANCE,
+      priority: ACTION_PRIORITY.HIGH_ATTENTION,
+      message: `Package size is ${qtyValue}${unit} (≥ 1kg/1L). Mandatory Unit Sale Price (USP) declaration under Rule 6(1)(h) was not detected.`,
+      recommendedAction: 'OFFICER_REVIEW'
+    };
+  }
+
+  if (uspData?.detected && uspData.rawText) {
+    const uspMatch = uspData.rawText.replace(/,/g, '').match(/\d+(\.\d+)?/);
+    if (uspMatch) {
+      const declaredUSP = parseFloat(uspMatch[0]);
+      // Expected cost per gram or ml
+      const expectedPerGram = mrpValue / totalGramsOrMl;
+      const expectedPerKg = expectedPerGram * 1000;
+
+      // Allow 2% tolerance for rounding in declarations
+      const isKgMatch = Math.abs(declaredUSP - expectedPerKg) < 0.5;
+      const is100gMatch = Math.abs(declaredUSP - (expectedPerGram * 100)) < 0.5;
+
+      if (!isKgMatch && !is100gMatch) {
+        return {
+          status: COMPLIANCE_STATUS.WARNING,
+          priority: ACTION_PRIORITY.REVIEW_RECOMMENDED,
+          message: `Declared USP (${uspData.rawText}) deviates from arithmetic calculation (Expected ~₹${expectedPerKg.toFixed(2)}/kg).`,
+          recommendedAction: 'VERIFY_ARITHMETIC'
+        };
+      }
+    }
+  }
+
+  return {
+    status: COMPLIANCE_STATUS.VERIFIED,
+    priority: ACTION_PRIORITY.NO_ACTION,
+    message: isMandatory 
+      ? 'Unit Sale Price (USP) is mandatory and matches arithmetic validation.' 
+      : 'Unit Sale Price requirement satisfied.',
+    recommendedAction: 'NONE'
+  };
+}
