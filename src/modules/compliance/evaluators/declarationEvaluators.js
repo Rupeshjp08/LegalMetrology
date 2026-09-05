@@ -1,12 +1,6 @@
 // src/modules/compliance/evaluators/declarationEvaluators.js
 import { COMPLIANCE_STATUS, ACTION_PRIORITY } from '../rules/generalRules.js';
 
-/**
- * Three-Way Missing Information Logic:
- * 1. Present -> run syntax & format checks.
- * 2. Missing + unclear/partial capture -> VERIFICATION_REQUIRED (Officer must manually review).
- * 3. Missing + high clarity + all panels captured -> POTENTIAL_NON_COMPLIANCE (Flagged).
- */
 export function checkMissingOrUnclear(fieldData, scanMetadata, fieldDisplayName) {
   if (!fieldData || !fieldData.detected || !fieldData.rawText?.trim()) {
     const isImageHighConfidence = 
@@ -173,14 +167,12 @@ export function evaluatePackagingDate(fieldData, scanMetadata) {
     recommendedAction: 'NONE'
   };
 }
-// Append to src/modules/compliance/evaluators/declarationEvaluators.js
 
 export function evaluateUnitSalePrice(declarations, scanMetadata) {
   const mrpData = declarations?.mrp;
   const netQtyData = declarations?.netQuantity;
   const uspData = declarations?.unitSalePrice;
 
-  // If MRP or Net Qty is missing, defer to their individual checks
   if (!mrpData?.detected || !netQtyData?.detected) {
     return {
       status: COMPLIANCE_STATUS.VERIFICATION_REQUIRED,
@@ -190,7 +182,6 @@ export function evaluateUnitSalePrice(declarations, scanMetadata) {
     };
   }
 
-  // Parse numeric values
   const mrpMatch = mrpData.rawText?.replace(/,/g, '').match(/\d+(\.\d+)?/);
   const qtyMatch = netQtyData.rawText?.match(/(\d+(\.\d+)?)\s*(kg|g|l|ml|ltr)/i);
 
@@ -207,13 +198,11 @@ export function evaluateUnitSalePrice(declarations, scanMetadata) {
   const qtyValue = parseFloat(qtyMatch[1]);
   const unit = qtyMatch[3].toLowerCase();
 
-  // Determine standard base unit in grams / ml
   let totalGramsOrMl = qtyValue;
   if (unit === 'kg' || unit === 'l' || unit === 'ltr') {
     totalGramsOrMl = qtyValue * 1000;
   }
 
-  // Mandatory USP threshold: packages > 1kg or > 1L (or items sold by number > 1)
   const isMandatory = totalGramsOrMl >= 1000;
 
   if (isMandatory && (!uspData || !uspData.detected || !uspData.rawText)) {
@@ -229,11 +218,9 @@ export function evaluateUnitSalePrice(declarations, scanMetadata) {
     const uspMatch = uspData.rawText.replace(/,/g, '').match(/\d+(\.\d+)?/);
     if (uspMatch) {
       const declaredUSP = parseFloat(uspMatch[0]);
-      // Expected cost per gram or ml
       const expectedPerGram = mrpValue / totalGramsOrMl;
       const expectedPerKg = expectedPerGram * 1000;
 
-      // Allow 2% tolerance for rounding in declarations
       const isKgMatch = Math.abs(declaredUSP - expectedPerKg) < 0.5;
       const is100gMatch = Math.abs(declaredUSP - (expectedPerGram * 100)) < 0.5;
 
@@ -257,3 +244,88 @@ export function evaluateUnitSalePrice(declarations, scanMetadata) {
     recommendedAction: 'NONE'
   };
 }
+
+export function evaluateFssaiLicense(fieldData, scanMetadata) {
+  const missingCheck = checkMissingOrUnclear(fieldData, scanMetadata, 'FSSAI License Number');
+  if (missingCheck) return missingCheck;
+
+  const text = fieldData.rawText;
+  const fssaiRegex = /\b\d{14}\b/;
+
+  if (!fssaiRegex.test(text)) {
+    return {
+      status: COMPLIANCE_STATUS.WARNING,
+      priority: ACTION_PRIORITY.REVIEW_RECOMMENDED,
+      message: 'FSSAI declaration found, but a valid 14-digit registration/license number regex match was not detected.',
+      recommendedAction: 'VERIFY_FSSAI_FORMAT'
+    };
+  }
+
+  return {
+    status: COMPLIANCE_STATUS.VERIFIED,
+    priority: ACTION_PRIORITY.NO_ACTION,
+    message: 'Valid 14-digit FSSAI license number verified on packaging.',
+    recommendedAction: 'NONE'
+  };
+}
+
+export function evaluateBestBefore(fieldData, scanMetadata) {
+  const missingCheck = checkMissingOrUnclear(fieldData, scanMetadata, 'Best Before / Expiry Date');
+  if (missingCheck) return missingCheck;
+
+  const text = fieldData.rawText.toLowerCase();
+  const hasKeywords = text.includes('best before') || text.includes('use by') || text.includes('expiry') || text.includes('exp');
+  const dateRegex = /(0[1-9]|1[0-2])[/-](20\d{2}|\d{2})|((jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{4})/i;
+
+  if (!hasKeywords && !dateRegex.test(text)) {
+    return {
+      status: COMPLIANCE_STATUS.WARNING,
+      priority: ACTION_PRIORITY.REVIEW_RECOMMENDED,
+      message: 'Date declaration detected, but mandatory "Best Before" or "Expiry" indicator phrase is absent.',
+      recommendedAction: 'VERIFY_EXPIRY_DECLARATION'
+    };
+  }
+
+  return {
+    status: COMPLIANCE_STATUS.VERIFIED,
+    priority: ACTION_PRIORITY.NO_ACTION,
+    message: 'Mandatory Best Before / Expiry date declaration is verified.',
+    recommendedAction: 'NONE'
+  };
+}
+
+export function evaluateBatchNumber(fieldData, scanMetadata) {
+  const missingCheck = checkMissingOrUnclear(fieldData, scanMetadata, 'Batch / Lot Number');
+  if (missingCheck) return missingCheck;
+
+  return {
+    status: COMPLIANCE_STATUS.VERIFIED,
+    priority: ACTION_PRIORITY.NO_ACTION,
+    message: 'Batch / Lot number declaration is verified.',
+    recommendedAction: 'NONE'
+  };
+}
+
+export function evaluateManufacturingLicense(fieldData, scanMetadata) {
+  const missingCheck = checkMissingOrUnclear(fieldData, scanMetadata, 'Manufacturing License');
+  if (missingCheck) return missingCheck;
+
+  return {
+    status: COMPLIANCE_STATUS.VERIFIED,
+    priority: ACTION_PRIORITY.NO_ACTION,
+    message: 'Manufacturing License number declaration is verified.',
+    recommendedAction: 'NONE'
+  };
+}
+
+export function evaluateIngredientList(fieldData, scanMetadata) {
+  const missingCheck = checkMissingOrUnclear(fieldData, scanMetadata, 'Ingredient Listing');
+  if (missingCheck) return missingCheck;
+
+  return {
+    status: COMPLIANCE_STATUS.VERIFIED,
+    priority: ACTION_PRIORITY.NO_ACTION,
+    message: 'Ingredient list declaration is verified.',
+    recommendedAction: 'NONE'
+  };
+}
