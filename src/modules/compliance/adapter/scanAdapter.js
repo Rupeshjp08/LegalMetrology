@@ -1,264 +1,145 @@
 // src/modules/compliance/adapter/scanAdapter.js
 
-/**
- * Canonical compliance field keys expected by rule evaluators.
- */
-const CANONICAL_FIELD_MAP = {
-  mrp: ['mrp', 'maximum_retail_price', 'max_retail_price', 'price', 'mrp_declaration', 'retail_price', 'mrp_price'],
-  netQuantity: ['netquantity', 'net_quantity', 'net_qty', 'netweight', 'net_weight', 'quantity', 'net_volume', 'net_vol', 'net_measure', 'net_count'],
-  manufacturerDetails: ['manufacturerdetails', 'manufacturer_details', 'manufacturer', 'packer_details', 'packer', 'mfg_details', 'manufactured_by', 'manufacturer_address'],
-  consumerCare: ['consumercare', 'consumer_care', 'customer_care', 'consumer_cell', 'grievance_contact', 'customer_service', 'helpline', 'consumer_grievance'],
-  countryOfOrigin: ['countryoforigin', 'country_of_origin', 'origin_country', 'origin', 'made_in', 'country_origin'],
-  dateOfPackaging: ['dateofpackaging', 'date_of_packaging', 'packaging_date', 'mfg_date', 'date_of_mfg', 'pack_date', 'month_year_of_packing', 'date_of_manufacture'],
-  unitSalePrice: ['unitsaleprice', 'unit_sale_price', 'usp', 'unit_price', 'price_per_unit'],
-  fssaiLicense: ['fssailicense', 'fssai_license', 'fssai', 'fssai_no', 'fssai_lic_no', 'fssai_number', 'fssai_reg', 'fssailicense number'],
-  bestBeforeDate: ['bestbeforedate', 'best_before_date', 'best_before', 'expiry_date', 'expiry', 'exp_date', 'use_by', 'use_by_date'],
-  batchNumber: ['batchnumber', 'batch_number', 'batch_no', 'batch', 'lot_number', 'lot_no', 'b_no'],
-  manufacturingLicense: ['manufacturinglicense', 'manufacturing_license', 'mfg_license', 'mfg_lic_no', 'mfg_lic', 'lic_no'],
-  ingredientList: ['ingredientlist', 'ingredient_list', 'ingredients', 'ingredients_list', 'ingredient_details']
+const DECLARATION_KEYS_MAP = {
+  mrp: ['mrp', 'maximum_retail_price', 'max_retail_price', 'price'],
+  netQuantity: ['netQuantity', 'net_weight', 'net_quantity', 'quantity', 'netquantity', 'netweight'],
+  manufacturerDetails: ['manufacturerDetails', 'manufacturer', 'packer_details', 'mfg_address', 'mfg_details', 'manufactured_by', 'manufacturer_address'],
+  consumerCare: ['consumerCare', 'customer_care', 'consumer_grievance', 'helpline', 'consumer_cell', 'customer_service'],
+  countryOfOrigin: ['countryOfOrigin', 'origin', 'country_of_origin', 'countryoforigin', 'origin_country', 'made_in'],
+  dateOfPackaging: ['dateOfPackaging', 'mfg_date', 'packaging_date', 'pkg_date', 'date_of_mfg', 'pack_date', 'month_year_of_packing'],
+  unitSalePrice: ['unitSalePrice', 'usp', 'unit_price', 'unitsaleprice', 'price_per_unit'],
+  fssaiLicense: ['fssaiLicense', 'fssai', 'fssai_no', 'fssai_lic_no', 'fssai_number'],
+  expiryDate: ['expiryDate', 'best_before', 'exp_date', 'best_before_date', 'expiry_date', 'use_by'],
+  bisRegistration: ['bisRegistration', 'bis', 'crs_registration', 'bis_no', 'bis_number']
 };
 
-/**
- * Normalizes a key string for lookup (lowercased, stripped of non-alphanumeric chars).
- */
-function normalizeKey(key) {
-  if (typeof key !== 'string') return '';
-  return key.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-/**
- * Extracts string content from various OCR output structures (strings, objects, bounding box tuples).
- */
-function extractRawText(fieldVal) {
-  if (fieldVal === null || fieldVal === undefined) return null;
-
-  if (typeof fieldVal === 'string' || typeof fieldVal === 'number') {
-    const text = String(fieldVal).trim();
-    if (!text || /^n\/?a$/i.test(text) || text.toLowerCase() === 'null' || text.toLowerCase() === 'undefined') {
-      return null;
-    }
-    return text;
+function extractRawString(val) {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'string' || typeof val === 'number') {
+    const text = String(val).trim();
+    return text.length > 0 && text.toLowerCase() !== 'null' && text.toLowerCase() !== 'undefined' ? text : null;
   }
-
-  if (Array.isArray(fieldVal)) {
-    const extracted = fieldVal
-      .map((item) => extractRawText(item))
-      .filter(Boolean)
-      .join(' ');
-    return extracted.length > 0 ? extracted : null;
+  if (Array.isArray(val)) {
+    const joined = val.map(extractRawString).filter(Boolean).join(' ');
+    return joined.length > 0 ? joined : null;
   }
-
-  if (typeof fieldVal === 'object') {
-    // Check known OCR text keys
-    const textCandidates = [
-      fieldVal.rawText,
-      fieldVal.raw_text,
-      fieldVal.text,
-      fieldVal.value,
-      fieldVal.val,
-      fieldVal.detectedText,
-      fieldVal.detected_text,
-      fieldVal.ocrText,
-      fieldVal.ocr_text,
-      fieldVal.content,
-      fieldVal.string,
-      fieldVal.string_value,
-      fieldVal.extractedText,
-      fieldVal.extracted_text,
-      fieldVal.displayText,
-      fieldVal.display_text
+  if (typeof val === 'object') {
+    const candidates = [
+      val.rawText, val.raw_text, val.text, val.value, val.val,
+      val.detectedText, val.detected_text, val.content, val.string
     ];
-
-    for (const candidate of textCandidates) {
-      const result = extractRawText(candidate);
+    for (const cand of candidates) {
+      const result = extractRawString(cand);
       if (result) return result;
     }
   }
-
   return null;
 }
 
-/**
- * Extracts bounding box data if available.
- */
-function extractBBox(fieldVal) {
-  if (!fieldVal || typeof fieldVal !== 'object' || Array.isArray(fieldVal)) return null;
-  return fieldVal.bbox || fieldVal.bounding_box || fieldVal.box || fieldVal.bounds || null;
-}
-
-/**
- * Extracts detection confidence if available.
- */
-function extractConfidence(fieldVal) {
-  if (!fieldVal || typeof fieldVal !== 'object') return null;
-  const conf = fieldVal.confidence ?? fieldVal.score ?? fieldVal.accuracy ?? null;
-  if (typeof conf === 'number') return conf;
-  return null;
-}
-
-/**
- * Extracts clarity rating ('clear' | 'blurry').
- */
-function extractClarity(fieldVal) {
-  if (fieldVal && typeof fieldVal === 'object') {
-    if (typeof fieldVal.clarity === 'string') return fieldVal.clarity.toLowerCase();
-    const conf = extractConfidence(fieldVal);
-    if (conf !== null) {
-      // Normalize 0-100 or 0-1 confidence
-      const normalizedConf = conf > 1 ? conf / 100 : conf;
-      return normalizedConf >= 0.7 ? 'clear' : 'blurry';
-    }
-  }
-  return 'clear';
-}
-
-/**
- * Determines whether a field is considered detected.
- */
-function extractDetectedFlag(fieldVal, rawText) {
-  if (fieldVal && typeof fieldVal === 'object' && !Array.isArray(fieldVal)) {
-    if (typeof fieldVal.detected === 'boolean') return fieldVal.detected;
-    if (typeof fieldVal.is_detected === 'boolean') return fieldVal.is_detected;
-    if (typeof fieldVal.found === 'boolean') return fieldVal.found;
-    if (typeof fieldVal.present === 'boolean') return fieldVal.present;
-  }
-  return Boolean(rawText && rawText.trim().length > 0);
-}
-
-/**
- * Main adapter function to normalize raw OCR scanner output into standard audit declarations.
- * 
- * @param {Object} rawOcrData - Raw output from scanner/OCR engine (may contain nested objects, arrays, bounding boxes, or mixed key casing).
- * @returns {Object} Standardized audit payload object consumable by `runComplianceAudit`.
- */
-export function adaptScanResult(rawOcrData) {
+export function adaptScanResult(rawScanData) {
   try {
-    const input = rawOcrData && typeof rawOcrData === 'object' ? rawOcrData : {};
+    const input = rawScanData && typeof rawScanData === 'object' ? rawScanData : {};
 
-    // 1. Identify raw fields dictionary from possible top-level wrappers
-    let rawFieldsSource = input.declarations || input.fields || input.ocrResults || input.ocr_results || input.extractedFields || input.items || input;
+    const inspectionId = input.inspectionId || input.inspection_id || input.id || `INS-${Date.now()}`;
 
-    if (Array.isArray(rawFieldsSource)) {
-      // If scanner outputs array of field items e.g., [{ key: 'mrp', text: '₹40' }, { label: 'NET_QTY', val: '250g' }]
-      const mappedObject = {};
-      rawFieldsSource.forEach((item) => {
+    const productName = input.productName || input.product?.name || input.name || 'Packaged Commodity';
+    const category = input.category || input.product?.category || 'General';
+    const product = { name: productName, category };
+
+    const imageQuality = input.imageQuality || input.scanMetadata?.imageQuality || input.scan_metadata?.image_quality || 'medium';
+    const allSidesCaptured = input.allSidesCaptured !== undefined 
+      ? Boolean(input.allSidesCaptured) 
+      : Boolean(input.scanMetadata?.allSidesCaptured || input.scan_metadata?.all_sides_captured);
+    const scanMetadata = { imageQuality, allSidesCaptured };
+
+    // Locate fields source dictionary or array
+    let fieldsSource = input.declarations || input.fields || input.ocrResults || input.ocr_results || input.items || input;
+
+    if (Array.isArray(fieldsSource)) {
+      const mappedObj = {};
+      fieldsSource.forEach((item) => {
         if (item && typeof item === 'object') {
-          const keyName = item.key || item.field || item.label || item.name || item.type;
-          if (keyName) mappedObject[keyName] = item;
+          const k = item.key || item.field || item.label || item.name || item.type;
+          if (k) mappedObj[k] = item;
         }
       });
-      rawFieldsSource = mappedObject;
-    } else if (typeof rawFieldsSource !== 'object' || rawFieldsSource === null) {
-      rawFieldsSource = {};
+      fieldsSource = mappedObj;
+    } else if (!fieldsSource || typeof fieldsSource !== 'object') {
+      fieldsSource = {};
     }
 
-    // Index raw fields by normalized key string
-    const normalizedRawFields = {};
-    Object.entries(rawFieldsSource).forEach(([rawKey, val]) => {
-      const normKey = normalizeKey(rawKey);
-      if (normKey) {
-        normalizedRawFields[normKey] = val;
-      }
+    // Normalized map for case-insensitive lookup
+    const normalizedFields = {};
+    Object.entries(fieldsSource).forEach(([rk, rv]) => {
+      if (rk) normalizedFields[rk.toLowerCase().replace(/[^a-z0-9]/g, '')] = rv;
     });
 
-    // 2. Build standard declarations contract
     const declarations = {};
 
-    Object.entries(CANONICAL_FIELD_MAP).forEach(([canonicalKey, aliases]) => {
+    Object.entries(DECLARATION_KEYS_MAP).forEach(([canonicalKey, aliases]) => {
       let matchedVal = undefined;
 
-      // Find value matching canonical key or any of its known aliases
       for (const alias of aliases) {
-        const normAlias = normalizeKey(alias);
-        if (normalizedRawFields[normAlias] !== undefined) {
-          matchedVal = normalizedRawFields[normAlias];
+        const normAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (normalizedFields[normAlias] !== undefined) {
+          matchedVal = normalizedFields[normAlias];
           break;
         }
       }
 
-      const rawText = extractRawText(matchedVal);
-      const detected = extractDetectedFlag(matchedVal, rawText);
-      const clarity = extractClarity(matchedVal);
-      const bbox = extractBBox(matchedVal);
-      const confidence = extractConfidence(matchedVal);
+      const rawText = extractRawString(matchedVal);
+
+      let detected = false;
+      if (matchedVal && typeof matchedVal === 'object' && !Array.isArray(matchedVal)) {
+        if (typeof matchedVal.detected === 'boolean') detected = matchedVal.detected;
+        else if (typeof matchedVal.is_detected === 'boolean') detected = matchedVal.is_detected;
+        else detected = Boolean(rawText);
+      } else {
+        detected = Boolean(rawText);
+      }
+
+      let clarity = 'clear';
+      if (matchedVal && typeof matchedVal === 'object' && !Array.isArray(matchedVal) && typeof matchedVal.clarity === 'string') {
+        clarity = matchedVal.clarity;
+      }
+
+      let confidence = 1.0;
+      if (matchedVal && typeof matchedVal === 'object' && !Array.isArray(matchedVal)) {
+        const confNum = matchedVal.confidence ?? matchedVal.score;
+        if (typeof confNum === 'number') confidence = confNum;
+      }
 
       declarations[canonicalKey] = {
         detected,
         rawText,
         clarity,
-        ...(confidence !== null ? { confidence } : {}),
-        ...(bbox !== null ? { bbox } : {})
+        confidence
       };
     });
 
-    // 3. Extract top-level metadata safely
-    const inspectionId = 
-      input.inspectionId || 
-      input.inspection_id || 
-      input.id || 
-      input.sessionId || 
-      `INS-${Date.now()}`;
-
-    const productName = 
-      input.product?.name || 
-      input.product_name || 
-      input.productName || 
-      input.name || 
-      'Unknown Packaged Commodity';
-
-    const productCategory = 
-      input.product?.category || 
-      input.productCategory || 
-      input.category || 
-      input.product_category || 
-      'General';
-
-    const imageQuality = 
-      input.scanMetadata?.imageQuality || 
-      input.scan_metadata?.image_quality || 
-      input.imageQuality || 
-      input.image_quality || 
-      'high';
-
-    const allSidesCaptured = 
-      typeof input.scanMetadata?.allSidesCaptured === 'boolean' 
-        ? input.scanMetadata.allSidesCaptured 
-        : typeof input.all_sides_captured === 'boolean' 
-        ? input.all_sides_captured 
-        : true;
-
     return {
       inspectionId,
-      product: {
-        name: productName,
-        category: productCategory
-      },
-      scanMetadata: {
-        imageQuality,
-        allSidesCaptured
-      },
+      product,
+      scanMetadata,
       declarations
     };
   } catch (err) {
-    // Ultimate defensive fallback so runComplianceAudit never crashes
-    console.error('Error adapting OCR scan result:', err);
+    console.error('Error adapting scan payload:', err);
     return {
-      inspectionId: `INS-ERR-${Date.now()}`,
-      product: { name: 'Unknown Packaged Commodity', category: 'General' },
-      scanMetadata: { imageQuality: 'low', allSidesCaptured: false },
+      inspectionId: `INS-${Date.now()}`,
+      product: { name: 'Packaged Commodity', category: 'General' },
+      scanMetadata: { imageQuality: 'medium', allSidesCaptured: false },
       declarations: {
-        mrp: { detected: false, rawText: null, clarity: 'blurry' },
-        netQuantity: { detected: false, rawText: null, clarity: 'blurry' },
-        manufacturerDetails: { detected: false, rawText: null, clarity: 'blurry' },
-        consumerCare: { detected: false, rawText: null, clarity: 'blurry' },
-        countryOfOrigin: { detected: false, rawText: null, clarity: 'blurry' },
-        dateOfPackaging: { detected: false, rawText: null, clarity: 'blurry' },
-        unitSalePrice: { detected: false, rawText: null, clarity: 'blurry' },
-        fssaiLicense: { detected: false, rawText: null, clarity: 'blurry' },
-        bestBeforeDate: { detected: false, rawText: null, clarity: 'blurry' },
-        batchNumber: { detected: false, rawText: null, clarity: 'blurry' },
-        manufacturingLicense: { detected: false, rawText: null, clarity: 'blurry' },
-        ingredientList: { detected: false, rawText: null, clarity: 'blurry' }
+        mrp: { detected: false, rawText: null, clarity: 'clear', confidence: 1.0 },
+        netQuantity: { detected: false, rawText: null, clarity: 'clear', confidence: 1.0 },
+        manufacturerDetails: { detected: false, rawText: null, clarity: 'clear', confidence: 1.0 },
+        consumerCare: { detected: false, rawText: null, clarity: 'clear', confidence: 1.0 },
+        countryOfOrigin: { detected: false, rawText: null, clarity: 'clear', confidence: 1.0 },
+        dateOfPackaging: { detected: false, rawText: null, clarity: 'clear', confidence: 1.0 },
+        unitSalePrice: { detected: false, rawText: null, clarity: 'clear', confidence: 1.0 },
+        fssaiLicense: { detected: false, rawText: null, clarity: 'clear', confidence: 1.0 },
+        expiryDate: { detected: false, rawText: null, clarity: 'clear', confidence: 1.0 },
+        bisRegistration: { detected: false, rawText: null, clarity: 'clear', confidence: 1.0 }
       }
     };
   }

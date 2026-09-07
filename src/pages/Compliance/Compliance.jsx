@@ -1,10 +1,12 @@
 // src/pages/Compliance/Compliance.jsx
 import React, { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Card from '../../components/ui/Card/Card'
 import StatusBadge from '../../components/ui/StatusBadge/StatusBadge'
 import Button from '../../components/ui/Button/Button'
 import PageHeader from '../../components/ui/PageHeader/PageHeader'
-import { runComplianceAudit, COMPLIANCE_STATUS } from '../../modules/compliance'
+import { ROUTES } from '../../constants'
+import { runComplianceAudit, generateInspectionSummary, COMPLIANCE_STATUS } from '../../modules/compliance'
 
 const MOCK_INSPECTION_DATA = {
   inspectionId: 'INS-2026-0042',
@@ -23,13 +25,87 @@ const MOCK_INSPECTION_DATA = {
     consumerCare: { detected: false, rawText: null, clarity: 'blurry' },
     countryOfOrigin: { detected: true, rawText: 'India', clarity: 'clear' },
     dateOfPackaging: { detected: true, rawText: '08/2026', clarity: 'clear' },
+    fssaiLicense: { detected: true, rawText: '10012011000234', clarity: 'clear' },
+    expiryDate: { detected: true, rawText: 'Best Before 6 months from packaging', clarity: 'clear' },
   },
 }
 
+function resolveScanInputData(locationState) {
+  if (locationState?.scanData) {
+    return locationState.scanData
+  }
+  try {
+    const sessionSaved = sessionStorage.getItem('pclmcs.latest_scan')
+    if (sessionSaved) {
+      return JSON.parse(sessionSaved)
+    }
+  } catch (err) {
+    console.warn('Could not parse sessionStorage scan data:', err)
+  }
+  return MOCK_INSPECTION_DATA
+}
+
 export default function Compliance() {
-  const [auditResult, setAuditResult] = useState(() => runComplianceAudit(MOCK_INSPECTION_DATA))
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const [activeScanData, setActiveScanData] = useState(() => resolveScanInputData(location.state))
+  const [auditResult, setAuditResult] = useState(() => runComplianceAudit(activeScanData))
+  const [selectedCategory, setSelectedCategory] = useState(() => auditResult.category || 'Food')
   const [activePanelFinding, setActivePanelFinding] = useState(null)
   const [officerDecisionNotes, setOfficerDecisionNotes] = useState('')
+
+  const handleCategorySwitch = (newCategory) => {
+    setSelectedCategory(newCategory)
+    const updatedInput = {
+      ...activeScanData,
+      product: {
+        ...(activeScanData.product || {}),
+        category: newCategory,
+      },
+    }
+    setActiveScanData(updatedInput)
+    setAuditResult(runComplianceAudit(updatedInput))
+  }
+
+  const handleSaveInspection = () => {
+    const exportSummary = generateInspectionSummary(auditResult)
+    try {
+      const existing = JSON.parse(localStorage.getItem('pclmcs.inspections') || '[]')
+      const updated = [
+        exportSummary,
+        ...existing.filter(
+          (item) => item.inspectionMetadata?.inspectionId !== exportSummary.inspectionMetadata?.inspectionId
+        ),
+      ]
+      localStorage.setItem('pclmcs.inspections', JSON.stringify(updated))
+    } catch (err) {
+      console.error('Failed to save inspection to localStorage:', err)
+    }
+
+    const targetRoute = ROUTES.REPORTS || ROUTES.INSPECTION || '/reports'
+    navigate(targetRoute, {
+      state: {
+        inspectionId: auditResult.inspectionId,
+        handoffPayload: exportSummary,
+      },
+    })
+  }
+
+  const handleExportHandoff = () => {
+    const summary = generateInspectionSummary(auditResult)
+    console.log('[Member 3 Handoff Payload for Member 4 & 5]:', summary)
+    if (summary.violations.length > 0) {
+      console.table(summary.violations)
+    }
+    alert(
+      `Inspection Handoff Payload Exported!\n` +
+      `Session: ${summary.inspectionMetadata.inspectionId}\n` +
+      `Status: ${summary.statutoryVerdict.overallStatus}\n` +
+      `Violations: ${summary.violations.length}\n` +
+      `Action: ${summary.statutoryVerdict.actionRequired}`
+    )
+  }
 
   const getBadgeProps = (status) => {
     switch (status) {
@@ -86,10 +162,48 @@ export default function Compliance() {
 
   return (
     <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto', position: 'relative' }}>
-      <PageHeader
-        title="Legal Metrology Compliance Intelligence"
-        subtitle={`Session ID: ${auditResult.inspectionId} | Commodity: ${auditResult.productName}`}
-      />
+      {/* Top Header Actions Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div>
+          <PageHeader
+            title="Legal Metrology Compliance Intelligence"
+            subtitle={`Session ID: ${auditResult.inspectionId} | Commodity: ${auditResult.productName}`}
+          />
+          {/* Category Selector Dropdown */}
+          <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>
+              Statutory Category Rule Set:
+            </label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => handleCategorySwitch(e.target.value)}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                backgroundColor: '#ffffff',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: '#0f172a',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="Food">Food / Beverage (FSSAI Rules)</option>
+              <option value="Electronics">Electronics (BIS / CRS Rules)</option>
+              <option value="General">General Commodity (Standard Rule 6)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <Button variant="secondary" size="medium" onClick={handleExportHandoff}>
+            Export Notice Data
+          </Button>
+          <Button variant="primary" size="medium" onClick={handleSaveInspection}>
+            Save Inspection & Issue Report
+          </Button>
+        </div>
+      </div>
 
       {/* Summary Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', margin: '1.5rem 0' }}>
@@ -112,7 +226,7 @@ export default function Compliance() {
       </div>
 
       {/* Rule 6 Assessment Cards */}
-      <Card title="Statutory Declaration Checks (Rule 6 Assessment)">
+      <Card title={`Statutory Declaration Checks (${selectedCategory} Category Assessment)`}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {auditResult.findings.map((finding) => {
             const badge = getBadgeProps(finding.status)
@@ -168,7 +282,7 @@ export default function Compliance() {
                       borderRadius: '6px',
                       fontWeight: 500,
                       cursor: 'pointer',
-                      fontSize: '0.9rem'
+                      fontSize: '0.9rem',
                     }}
                   >
                     Review Panel

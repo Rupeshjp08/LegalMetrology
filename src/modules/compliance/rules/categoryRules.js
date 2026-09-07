@@ -3,25 +3,39 @@
 export const FOOD_RULES = [
   {
     ruleId: 'LM-FOOD-01-FSSAI',
-    ruleName: 'Mandatory FSSAI License Declaration',
+    ruleName: 'FSSAI License & Logo Declaration',
     field: 'fssaiLicense',
     mandatory: true,
-    legalReference: 'FSS (Packaging & Labelling) Regulations & Rule 6(1) LM PC Rules',
-    penalSection: 'Section 31, FSS Act, 2006 / Section 36(1), Legal Metrology Act, 2009',
-    statutoryDirective: 'Mandatory 14-digit FSSAI license number must be declared on food packages.',
-    description: 'Check for mandatory FSSAI license number (14-digit regex).',
-    evaluator: 'evaluateFssaiLicense'
+    legalReference: 'FSS (Packaging and Labelling) Regulations, 2011 & Rule 6 LM PC Rules',
+    penalSection: 'Section 58, FSS Act, 2006 / Section 36(1), Legal Metrology Act, 2009',
+    statutoryDirective: 'Mandatory 14-digit FSSAI license number and FSSAI logo must be declared on food packages.',
+    description: 'Check for mandatory FSSAI license number (14-digit numeric regex).',
+    evaluator: 'evaluateFSSAI'
   },
   {
     ruleId: 'LM-FOOD-02-EXPIRY',
     ruleName: 'Best Before / Expiry Date Declaration',
-    field: 'bestBeforeDate',
+    field: 'expiryDate',
     mandatory: true,
-    legalReference: 'FSS (Packaging & Labelling) Regulations & Rule 6(1)(d) LM PC Rules',
+    legalReference: 'Rule 6(1)(d) LM PC Rules & FSS Packaging Regulations',
     penalSection: 'Section 36(1), Legal Metrology Act, 2009',
-    statutoryDirective: 'Best Before or Expiry date declaration must be clearly printed on all packaged food commodities.',
-    description: 'Check for mandatory Best Before or Expiry date declaration.',
-    evaluator: 'evaluateBestBefore'
+    statutoryDirective: '"Best Before" or "Use By" / Expiry date declaration must be clearly printed on all packaged food commodities.',
+    description: 'Check for mandatory Best Before or Expiry date declaration prefix.',
+    evaluator: 'evaluateExpiryDate'
+  }
+];
+
+export const ELECTRONICS_RULES = [
+  {
+    ruleId: 'LM-ELEC-01-BIS',
+    ruleName: 'Compulsory BIS / CRS Registration Mark',
+    field: 'bisRegistration',
+    mandatory: true,
+    legalReference: 'Electronics & IT Goods Compulsory Registration Order & LM PC Rules',
+    penalSection: 'Section 36(1), Legal Metrology Act, 2009',
+    statutoryDirective: 'Electronic commodities must display mandatory BIS CRS Registration number (R-XXXXXXXX) and standard mark.',
+    description: 'Compulsory BIS registration mark regex check for electronic commodities.',
+    evaluator: 'evaluateBIS'
   }
 ];
 
@@ -63,6 +77,10 @@ export const COSMETICS_RULES = [
 
 export const CATEGORY_RULES = {
   food: FOOD_RULES,
+  beverage: FOOD_RULES,
+  edible: FOOD_RULES,
+  electronics: ELECTRONICS_RULES,
+  appliances: ELECTRONICS_RULES,
   cosmetics: COSMETICS_RULES,
   cosmetic: COSMETICS_RULES
 };
