@@ -15,6 +15,7 @@ import {
   UPLOAD_ACCEPT_ATTR,
   validateImageFile,
 } from '../../utils/fileValidation'
+import CameraCaptureModal from './CameraCaptureModal'
 import './ScanProduct.css'
 
 const SCAN_METHODS = [
@@ -31,7 +32,7 @@ const SCAN_METHODS = [
     title: 'Capture Image',
     description: 'Capture the product package using your device camera.',
     ctaLabel: 'Open Camera',
-    coming: 'Camera capture',
+    usesCamera: true,
   },
   {
     key: 'scan',
@@ -49,10 +50,15 @@ export default function ScanProduct() {
 
   const [images, setImages] = useState([])
   const [uploadErrors, setUploadErrors] = useState([])
+  const [cameraOpen, setCameraOpen] = useState(false)
   const [comingStep, setComingStep] = useState(null)
   const [continueNotice, setContinueNotice] = useState(false)
 
   const openPicker = () => pickerRef.current?.click()
+
+  const handleCameraCapture = (file) => {
+    addImages([file])
+  }
 
   const addImages = useCallback((incoming) => {
     if (!incoming || incoming.length === 0) return
@@ -178,6 +184,10 @@ export default function ScanProduct() {
                 <Button icon="upload" onClick={openPicker}>
                   {method.ctaLabel}
                 </Button>
+              ) : method.usesCamera ? (
+                <Button variant="outline" icon={method.icon} onClick={() => setCameraOpen(true)}>
+                  {method.ctaLabel}
+                </Button>
               ) : (
                 <Button
                   variant="outline"
@@ -267,6 +277,12 @@ export default function ScanProduct() {
           </span>
         </div>
       </Modal>
+
+      <CameraCaptureModal
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={handleCameraCapture}
+      />
     </div>
   )
 }
