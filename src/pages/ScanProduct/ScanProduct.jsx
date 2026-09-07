@@ -7,8 +7,8 @@ import ImagePreviewCard from '../../components/upload/ImagePreviewCard/ImagePrev
 import Button from '../../components/ui/Button/Button'
 import Card from '../../components/ui/Card/Card'
 import Icon from '../../components/ui/Icon/Icon'
-import Modal from '../../components/ui/Modal/Modal'
 import PageHeader from '../../components/ui/PageHeader/PageHeader'
+import StatusBadge from '../../components/ui/StatusBadge/StatusBadge'
 import { ROUTES } from '../../constants'
 import {
   IMAGE_LABELS,
@@ -16,6 +16,7 @@ import {
   validateImageFile,
 } from '../../utils/fileValidation'
 import CameraCaptureModal from './CameraCaptureModal'
+import QRBarcodeScannerModal from './QRBarcodeScannerModal'
 import './ScanProduct.css'
 
 const SCAN_METHODS = [
@@ -32,7 +33,7 @@ const SCAN_METHODS = [
     title: 'Capture Image',
     description: 'Capture the product package using your device camera.',
     ctaLabel: 'Open Camera',
-    usesCamera: true,
+    usesVideoCapture: true,
   },
   {
     key: 'scan',
@@ -40,7 +41,7 @@ const SCAN_METHODS = [
     title: 'Scan QR / Barcode',
     description: 'Scan the QR code or barcode available on the package.',
     ctaLabel: 'Start Scanner',
-    coming: 'QR / barcode scanning',
+    usesScanner: true,
   },
 ]
 
@@ -51,13 +52,18 @@ export default function ScanProduct() {
   const [images, setImages] = useState([])
   const [uploadErrors, setUploadErrors] = useState([])
   const [cameraOpen, setCameraOpen] = useState(false)
-  const [comingStep, setComingStep] = useState(null)
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [productCode, setProductCode] = useState(null)
   const [continueNotice, setContinueNotice] = useState(false)
 
   const openPicker = () => pickerRef.current?.click()
 
   const handleCameraCapture = (file) => {
     addImages([file])
+  }
+
+  const handleScanResult = (code) => {
+    setProductCode({ type: code.format, value: code.text })
   }
 
   const addImages = useCallback((incoming) => {
@@ -184,16 +190,20 @@ export default function ScanProduct() {
                 <Button icon="upload" onClick={openPicker}>
                   {method.ctaLabel}
                 </Button>
-              ) : method.usesCamera ? (
+              ) : method.usesVideoCapture ? (
                 <Button variant="outline" icon={method.icon} onClick={() => setCameraOpen(true)}>
                   {method.ctaLabel}
                 </Button>
-              ) : (
+              ) : method.usesScanner ? (
                 <Button
                   variant="outline"
                   icon={method.icon}
-                  onClick={() => setComingStep(method.coming)}
+                  onClick={() => setScannerOpen(true)}
                 >
+                  {method.ctaLabel}
+                </Button>
+              ) : (
+                <Button variant="outline" icon={method.icon}>
                   {method.ctaLabel}
                 </Button>
               )}
@@ -265,23 +275,55 @@ export default function ScanProduct() {
         )}
       </section>
 
-      <Modal
-        open={comingStep !== null}
-        onClose={() => setComingStep(null)}
-        title="Coming in the next step"
-      >
-        <div className="scan-feature-notice">
-          <Icon name="info" size={18} className="scan-feature-notice__icon" />
-          <span>
-            {comingStep ? `${comingStep} will be available in the next step.` : ''}
-          </span>
-        </div>
-      </Modal>
+      {productCode && (
+        <section className="scan-section" aria-labelledby="scan-product-code-title">
+          <Card
+            title="Product Code"
+            subtitle="Detected from the package QR code or barcode."
+            meta={<StatusBadge status="verified" label="Code detected" />}
+          >
+            <div className="scan-product-code">
+              <dl className="scan-product-code__details">
+                <div className="scan-product-code__row">
+                  <dt>Code Type</dt>
+                  <dd>{productCode.type}</dd>
+                </div>
+                <div className="scan-product-code__row">
+                  <dt>Detected Value</dt>
+                  <dd className="scan-product-code__value" title={productCode.value}>
+                    {productCode.value}
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="scan-product-code__actions">
+                <Button variant="outline" size="sm" icon="barcode" onClick={() => setScannerOpen(true)}>
+                  Scan Again
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon="trash"
+                  onClick={() => setProductCode(null)}
+                >
+                  Remove Code
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </section>
+      )}
 
       <CameraCaptureModal
         open={cameraOpen}
         onClose={() => setCameraOpen(false)}
         onCapture={handleCameraCapture}
+      />
+
+      <QRBarcodeScannerModal
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onResult={handleScanResult}
       />
     </div>
   )
