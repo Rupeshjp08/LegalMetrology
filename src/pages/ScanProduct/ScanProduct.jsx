@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import ActionCard from '../../components/upload/ActionCard/ActionCard'
+import EmptyState from '../../components/feedback/EmptyState/EmptyState'
 import FileValidationMessage from '../../components/upload/FileValidationMessage/FileValidationMessage'
+import Breadcrumb from '../../components/layout/Breadcrumb/Breadcrumb'
+import ActionCard from '../../components/upload/ActionCard/ActionCard'
 import ImagePreviewCard from '../../components/upload/ImagePreviewCard/ImagePreviewCard'
-import UploadArea from '../../components/upload/UploadArea/UploadArea'
 import Button from '../../components/ui/Button/Button'
 import Card from '../../components/ui/Card/Card'
 import Icon from '../../components/ui/Icon/Icon'
+import Modal from '../../components/ui/Modal/Modal'
 import PageHeader from '../../components/ui/PageHeader/PageHeader'
+import { ROUTES } from '../../constants'
 import {
   IMAGE_LABELS,
   UPLOAD_ACCEPT_ATTR,
@@ -14,109 +17,100 @@ import {
 } from '../../utils/fileValidation'
 import './ScanProduct.css'
 
-const ACTION_CARDS = [
+const SCAN_METHODS = [
+  {
+    key: 'upload',
+    icon: 'upload',
+    title: 'Upload Product Image',
+    description: 'Upload clear images of the packaged commodity label.',
+    ctaLabel: 'Upload Image',
+  },
   {
     key: 'camera',
     icon: 'camera',
     title: 'Capture Image',
-    description: 'Open the device camera to photograph the product package.',
+    description: 'Capture the product package using your device camera.',
     ctaLabel: 'Open Camera',
-    notice: 'The camera capture module will be implemented in a later release.',
-  },
-  {
-    key: 'upload',
-    icon: 'upload',
-    title: 'Upload Image',
-    description: 'Add product images from this device for the inspection.',
-    ctaLabel: 'Upload Product Image',
+    coming: 'Camera capture',
   },
   {
     key: 'scan',
     icon: 'barcode',
     title: 'Scan QR / Barcode',
-    description: 'Read the package QR or barcode to prefill product details.',
-    ctaLabel: 'Scan QR / Barcode',
-    notice: 'QR / barcode scanning will be implemented in a later release.',
+    description: 'Scan the QR code or barcode available on the package.',
+    ctaLabel: 'Start Scanner',
+    coming: 'QR / barcode scanning',
   },
 ]
-
-const PROCESSING_DELAY_MS = 600
 
 export default function ScanProduct() {
   const pickerRef = useRef(null)
   const previewUrlsRef = useRef([])
-  const processingTimerRef = useRef(null)
 
   const [images, setImages] = useState([])
-  const [isProcessing, setIsProcessing] = useState(false)
   const [uploadErrors, setUploadErrors] = useState([])
-  const [replaceErrors, setReplaceErrors] = useState([])
-  const [featureNotice, setFeatureNotice] = useState('')
-  const [qualityCheckNotice, setQualityCheckNotice] = useState(false)
+  const [comingStep, setComingStep] = useState(null)
+  const [continueNotice, setContinueNotice] = useState(false)
 
   const openPicker = () => pickerRef.current?.click()
 
-  const buildImageEntry = useCallback((file) => {
-    const previewUrl = URL.createObjectURL(file)
-    previewUrlsRef.current.push(previewUrl)
-    return {
-      id: `${file.name}-${file.lastModified}-${Date.now()}-${Math.round(Math.random() * 1e6)}`,
-      file,
-      previewUrl,
-      label: IMAGE_LABELS[0].value,
-    }
+  const addImages = useCallback((incoming) => {
+    if (!incoming || incoming.length === 0) return
+
+    const errors = []
+    const accepted = []
+
+    incoming.forEach((file) => {
+      const error = validateImageFile(file)
+      if (error) {
+        errors.push(`${file.name}: ${error}`)
+        return
+      }
+
+      const previewUrl = URL.createObjectURL(file)
+      previewUrlsRef.current.push(previewUrl)
+      accepted.push({
+        id: `${file.name}-${file.lastModified}-${Date.now()}-${Math.round(Math.random() * 1e6)}`,
+        file,
+        previewUrl,
+        label: IMAGE_LABELS[0].value,
+      })
+    })
+
+    setUploadErrors(errors)
+    setImages((previous) => [...previous, ...accepted])
   }, [])
+
+  const handleFilesSelected = (event) => {
+    addImages(Array.from(event.target.files || []))
+    event.target.value = ''
+  }
 
   const releasePreviewUrl = useCallback((previewUrl) => {
     URL.revokeObjectURL(previewUrl)
     previewUrlsRef.current = previewUrlsRef.current.filter((url) => url !== previewUrl)
   }, [])
 
-  const handleFilesSelected = useCallback((fileList) => {
-    const incoming = fileList ? Array.from(fileList) : []
-    if (incoming.length === 0) return
-
-    if (processingTimerRef.current) clearTimeout(processingTimerRef.current)
-    setIsProcessing(true)
-    setUploadErrors([])
-    setReplaceErrors([])
-
-    processingTimerRef.current = window.setTimeout(() => {
-      const errors = []
-      const accepted = []
-
-      incoming.forEach((file) => {
-        const error = validateImageFile(file)
-        if (error) {
-          errors.push(`${file.name}: ${error}`)
-        } else {
-          accepted.push(file)
-        }
-      })
-
-      setUploadErrors(errors)
-
-      if (accepted.length > 0) {
-        const newImages = accepted.map(buildImageEntry)
-        setImages((previous) => [...previous, ...newImages])
-        setFeatureNotice('')
-      }
-
-      setIsProcessing(false)
-    }, PROCESSING_DELAY_MS)
-  }, [buildImageEntry])
+  const handleRemoveImage = (id) => {
+    setImages((previous) => {
+      const target = previous.find((image) => image.id === id)
+      if (target?.previewUrl) releasePreviewUrl(target.previewUrl)
+      return previous.filter((image) => image.id !== id)
+    })
+    setContinueNotice(false)
+  }
 
   const handleReplaceImage = (id, file) => {
     const error = validateImageFile(file)
     if (error) {
-      setReplaceErrors([`${file.name}: ${error}`])
+      setUploadErrors([`${file.name}: ${error}`])
       return
     }
 
     const newPreviewUrl = URL.createObjectURL(file)
     previewUrlsRef.current.push(newPreviewUrl)
 
-    setReplaceErrors([])
+    setUploadErrors([])
     setImages((previous) =>
       previous.map((image) => {
         if (image.id !== id) return image
@@ -126,14 +120,6 @@ export default function ScanProduct() {
     )
   }
 
-  const handleRemoveImage = (id) => {
-    setImages((previous) => {
-      const target = previous.find((image) => image.id === id)
-      if (target?.previewUrl) releasePreviewUrl(target.previewUrl)
-      return previous.filter((image) => image.id !== id)
-    })
-  }
-
   const handleLabelChange = (id, label) => {
     setImages((previous) =>
       previous.map((image) => (image.id === id ? { ...image, label } : image)),
@@ -141,68 +127,28 @@ export default function ScanProduct() {
   }
 
   const handleContinue = () => {
-    setQualityCheckNotice(true)
-  }
-
-  const showFeaturePlaceholder = (notice) => {
-    setFeatureNotice(notice)
+    setContinueNotice(true)
   }
 
   useEffect(() => {
     return () => {
-      if (processingTimerRef.current) clearTimeout(processingTimerRef.current)
       previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
     }
   }, [])
 
-  const previewSubtitle = `${images.length} image${images.length === 1 ? '' : 's'} selected`
-
-  const renderUploadMessage = () => {
-    if (isProcessing) {
-      return (
-        <FileValidationMessage
-          tone="hint"
-          title="Processing images"
-          messages={['Reading selected files and checking the format.']}
-        />
-      )
-    }
-
-    if (uploadErrors.length > 0) {
-      return (
-        <FileValidationMessage
-          tone="error"
-          title="Some images could not be added"
-          messages={uploadErrors}
-        />
-      )
-    }
-
-    if (images.length === 0) {
-      return (
-        <FileValidationMessage
-          tone="warning"
-          title="No image selected"
-          messages={['Add at least one product image to continue.']}
-        />
-      )
-    }
-
-    return (
-      <FileValidationMessage
-        tone="success"
-        title="Image added successfully"
-        messages={['Selected image(s) passed the required file checks.']}
-      />
-    )
-  }
-
   return (
     <div className="container">
+      <Breadcrumb
+        items={[
+          { to: ROUTES.DASHBOARD, label: 'Dashboard' },
+          { label: 'Product Inspection' },
+        ]}
+      />
+
       <PageHeader
-        overline="Product Scanning & AI · Legal Metrology"
+        overline="Legal Metrology · Product Scanning"
         title="Product Inspection"
-        description="Upload or capture package images to begin the inspection."
+        description="Scan or upload packaged commodity information for Legal Metrology compliance inspection."
       />
 
       <input
@@ -213,76 +159,66 @@ export default function ScanProduct() {
         className="sr-only"
         tabIndex={-1}
         aria-hidden="true"
-        onChange={(event) => {
-          handleFilesSelected(event.target.files)
-          event.target.value = ''
-        }}
+        onChange={handleFilesSelected}
       />
 
-      <section className="scan-section" aria-labelledby="scan-actions-title">
-        <h2 id="scan-actions-title" className="scan-section__title">
-          Begin Inspection
+      <section className="scan-section" aria-labelledby="scan-methods-title">
+        <h2 id="scan-methods-title" className="scan-section__title">
+          Scan Methods
         </h2>
         <div className="scan-actions">
-          {ACTION_CARDS.map((action) => (
+          {SCAN_METHODS.map((method) => (
             <ActionCard
-              key={action.key}
-              icon={action.icon}
-              title={action.title}
-              description={action.description}
+              key={method.key}
+              icon={method.icon}
+              title={method.title}
+              description={method.description}
             >
-              {action.key === 'upload' ? (
+              {method.key === 'upload' ? (
                 <Button icon="upload" onClick={openPicker}>
-                  {action.ctaLabel}
+                  {method.ctaLabel}
                 </Button>
               ) : (
                 <Button
                   variant="outline"
-                  icon={action.icon}
-                  onClick={() => showFeaturePlaceholder(action.notice)}
+                  icon={method.icon}
+                  onClick={() => setComingStep(method.coming)}
                 >
-                  {action.ctaLabel}
+                  {method.ctaLabel}
                 </Button>
               )}
             </ActionCard>
           ))}
         </div>
-
-        {featureNotice && (
-          <div className="scan-feature-notice" role="status">
-            <Icon name="info" size={18} className="scan-feature-notice__icon" />
-            <span>{featureNotice}</span>
-          </div>
-        )}
       </section>
 
-      <section className="scan-section" aria-labelledby="scan-upload-title">
-        <h2 id="scan-upload-title" className="scan-section__title">
-          Upload Product Images
+      <section className="scan-section" aria-labelledby="scan-images-title">
+        <h2 id="scan-images-title" className="scan-section__title">
+          Inspection Images
         </h2>
         <Card>
-          <UploadArea onFilesSelected={handleFilesSelected} disabled={isProcessing} />
-          <div className="scan-upload-messages">{renderUploadMessage()}</div>
-        </Card>
-      </section>
+          {uploadErrors.length > 0 && (
+            <div className="scan-upload-messages">
+              <FileValidationMessage
+                tone="error"
+                title="Some images could not be added"
+                messages={uploadErrors}
+              />
+            </div>
+          )}
 
-      {images.length > 0 && (
-        <section className="scan-section" aria-labelledby="scan-preview-title">
-          <Card
-            title="Selected Images"
-            subtitle={previewSubtitle}
-            meta={
-              <Button
-                variant="outline"
-                size="sm"
-                icon="plus"
-                onClick={openPicker}
-                disabled={isProcessing}
-              >
-                Add Another Image
-              </Button>
-            }
-          >
+          {images.length === 0 ? (
+            <EmptyState
+              icon="image"
+              title="No product images added yet."
+              description="Upload or capture a product package image to begin the inspection."
+              action={
+                <Button icon="upload" onClick={openPicker}>
+                  Upload Image
+                </Button>
+              }
+            />
+          ) : (
             <div className="scan-preview-grid">
               {images.map((image) => (
                 <ImagePreviewCard
@@ -294,19 +230,9 @@ export default function ScanProduct() {
                 />
               ))}
             </div>
-
-            {replaceErrors.length > 0 && (
-              <div className="scan-replace-errors">
-                <FileValidationMessage
-                  tone="error"
-                  title="Image could not be replaced"
-                  messages={replaceErrors}
-                />
-              </div>
-            )}
-          </Card>
-        </section>
-      )}
+          )}
+        </Card>
+      </section>
 
       <section className="scan-section scan-continue" aria-label="Continue inspection">
         <Button
@@ -317,15 +243,30 @@ export default function ScanProduct() {
           disabled={images.length === 0}
           onClick={handleContinue}
         >
-          Continue to Image Quality Check
+          Continue
         </Button>
-        {qualityCheckNotice && (
+        {continueNotice && (
           <div className="scan-continue__notice" role="status">
             <Icon name="info" size={18} className="scan-continue__notice-icon" />
-            <span>Image Quality Check will be implemented in the next step.</span>
+            <span>
+              Product images are ready. Further inspection steps will be added next.
+            </span>
           </div>
         )}
       </section>
+
+      <Modal
+        open={comingStep !== null}
+        onClose={() => setComingStep(null)}
+        title="Coming in the next step"
+      >
+        <div className="scan-feature-notice">
+          <Icon name="info" size={18} className="scan-feature-notice__icon" />
+          <span>
+            {comingStep ? `${comingStep} will be available in the next step.` : ''}
+          </span>
+        </div>
+      </Modal>
     </div>
   )
 }
