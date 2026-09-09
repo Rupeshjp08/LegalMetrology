@@ -22,6 +22,7 @@ export const ApiEndpoints = {
     DETAIL: (id) => `/packaged-products/${id}`,
     REGISTER: '/packaged-products',
     UPDATE: (id) => `/packaged-products/${id}`,
+    LOOKUP_BY_CODE: (code) => `/packaged-products/lookup/${encodeURIComponent(code)}`,
   },
   INSPECTIONS: {
     LIST: '/inspections',
