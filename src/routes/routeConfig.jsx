@@ -16,6 +16,10 @@ const ScanHistory = lazy(() => import('../pages/ScanHistory/ScanHistory'))
 const QRVerification = lazy(() => import('../pages/QRVerification/QRVerification'))
 const Analytics = lazy(() => import('../pages/Analytics/Analytics'))
 const Settings = lazy(() => import('../pages/Settings/Settings'))
+const CompanyNotifications = lazy(() => import('../pages/CompanyNotifications/CompanyNotifications'))
+const CompanyNotificationDetails = lazy(() => import('../pages/CompanyNotificationDetails/CompanyNotificationDetails'))
+const CompanyResponse = lazy(() => import('../pages/CompanyResponse/CompanyResponse'))
+const Reinspection = lazy(() => import('../pages/Reinspection/Reinspection'))
 const About = lazy(() => import('../pages/About/About'))
 const Contact = lazy(() => import('../pages/Contact/Contact'))
 const Info = lazy(() => import('../pages/Info/Info'))
@@ -124,6 +128,34 @@ export const routeDefinitions = [
     layout: 'officer',
     requiresAuth: true,
     name: 'Settings',
+  },
+  {
+    path: ROUTES.COMPANY_NOTIFICATIONS,
+    element: <CompanyNotifications />,
+    layout: 'officer',
+    requiresAuth: true,
+    name: 'Company Notifications',
+  },
+  {
+    path: `${ROUTES.COMPANY_NOTIFICATIONS}/:id`,
+    element: <CompanyNotificationDetails />,
+    layout: 'officer',
+    requiresAuth: true,
+    name: 'Notification Details',
+  },
+  {
+    path: `/company-response/:id`,
+    element: <CompanyResponse />,
+    layout: 'officer',
+    requiresAuth: true,
+    name: 'Company Response',
+  },
+  {
+    path: `/re-inspection/:id`,
+    element: <Reinspection />,
+    layout: 'officer',
+    requiresAuth: true,
+    name: 'Re-inspection',
   },
   {
     path: ROUTES.ABOUT,

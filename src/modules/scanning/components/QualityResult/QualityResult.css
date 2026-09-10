@@ -1,0 +1,208 @@
+.quality-result {
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+  padding: var(--space-4);
+}
+
+.quality-result--good {
+  border-left-color: var(--color-success);
+}
+
+.quality-result--warning {
+  border-left-color: var(--color-warning);
+}
+
+.quality-result--poor {
+  border-left-color: var(--color-danger);
+}
+
+.quality-result__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.quality-result__title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.quality-result__summary {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: var(--space-1) 0 0;
+  max-width: 46ch;
+}
+
+.quality-result__overall {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.quality-result__score {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.quality-result__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.quality-result__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.quality-result__row:last-child {
+  border-bottom: none;
+}
+
+.quality-result__row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quality-result__row--good .quality-result__row-icon {
+  color: var(--color-success);
+}
+
+.quality-result__row--warning .quality-result__row-icon {
+  color: var(--color-warning);
+}
+
+.quality-result__row--poor .quality-result__row-icon {
+  color: var(--color-danger);
+}
+
+.quality-result__row-label {
+  color: var(--color-text-secondary);
+  flex: 0 0 auto;
+}
+
+.quality-result__row-value {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.quality-result__row-text {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-align: right;
+}
+
+.quality-result__row-level {
+  min-width: 44px;
+  text-align: right;
+  font-weight: var(--font-weight-semibold);
+}
+
+.quality-result__row--good .quality-result__row-level {
+  color: var(--color-success);
+}
+
+.quality-result__row--warning .quality-result__row-level {
+  color: var(--color-warning);
+}
+
+.quality-result__row--poor .quality-result__row-level {
+  color: var(--color-danger);
+}
+
+.quality-result__problems {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid rgba(185, 28, 28, 0.3);
+  border-radius: var(--radius-md);
+  background-color: var(--color-danger-soft);
+}
+
+.quality-result__problems-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.quality-result__problems-list {
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.quality-result__problems-list li {
+  margin-bottom: var(--space-1);
+}
+
+.quality-result__suggestions {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+/* Loading / error states */
+.quality-result--loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+}
+
+.quality-result--error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Compact variant used inside per-image cards */
+.quality-result--compact .quality-result__header {
+  margin-bottom: var(--space-2);
+}
+
+.quality-result--compact .quality-result__title {
+  font-size: var(--font-size-sm);
+}
+
+.quality-result--compact .quality-result__summary {
+  font-size: var(--font-size-xs);
+}
+
+@media (max-width: 480px) {
+  .quality-result__row-value {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+  }
+}

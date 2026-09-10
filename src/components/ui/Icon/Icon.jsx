@@ -117,10 +117,21 @@ const ICONS = {
       <path d="m6 9 6 6 6-6" />
     </>
   ),
+  'chevron-left': (
+    <>
+      <path d="m15 18-6-6 6-6" />
+    </>
+  ),
   arrowRight: (
     <>
       <path d="M5 12h14" />
       <path d="m13 6 6 6-6 6" />
+    </>
+  ),
+  arrowLeft: (
+    <>
+      <path d="M19 12H5" />
+      <path d="m11 18-6-6 6-6" />
     </>
   ),
   scale: (
@@ -176,7 +187,7 @@ const ICONS = {
       <path d="m21 15-5-5L5 21" />
     </>
   ),
-  clock: (
+clock: (
     <>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
@@ -236,21 +247,30 @@ const ICONS = {
       <rect x="6" y="14" width="12" height="7" rx="1" />
     </>
   ),
+  refresh: (
+    <>
+      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+      <path d="M16 21h5v-5" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </>
+  ),
+  edit: (
+    <>
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="m15 5 4 4" />
+    </>
+  ),
   eye: (
     <>
       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
       <circle cx="12" cy="12" r="3" />
-    </>
-  ),
-  refresh: (
-    <>
-      <path d="M21 12a9 9 0 1 1-2.7-6.4" />
-      <path d="M21 3v6h-6" />
-    </>
-  ),
-  'chevron-left': (
-    <>
-      <path d="m15 6-6 6 6 6" />
     </>
   ),
   'chevron-right': (
@@ -291,6 +311,13 @@ const ICONS = {
     <>
       <path d="m3 7 6 6 4-4 8 8" />
       <path d="M14 17h7v-7" />
+    </>
+  ),
+  key: (
+    <>
+      <circle cx="7.5" cy="15.5" r="5.5" />
+      <path d="m21 2-9.6 9.6" />
+      <path d="m15.5 7.5 3 3L22 7l-3-3" />
     </>
   ),
 }

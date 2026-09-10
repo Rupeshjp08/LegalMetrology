@@ -10,6 +10,7 @@ const OFFICER_NAV_ITEMS = [
   { to: '/scan', label: 'Scan Product', icon: 'camera' },
   { to: '/compliance', label: 'Compliance', icon: 'scale' },
   { to: '/inspection', label: 'Inspections', icon: 'upload' },
+  { to: '/company-notifications', label: 'Company Notifications', icon: 'mail' },
   { to: '/company', label: 'Companies', icon: 'file' },
   { to: '/reports', label: 'Reports', icon: 'file-text' },
   { to: '/admin', label: 'Admin Dashboard', icon: 'shield' },

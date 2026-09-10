@@ -8,7 +8,7 @@ import axios from 'axios'
  * can proxy requests during development.
  */
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || '/api',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -17,7 +17,7 @@ const apiClient = axios.create({
 })
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('pclmcs.auth.token')
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('pclmcs.auth.token') : null
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }

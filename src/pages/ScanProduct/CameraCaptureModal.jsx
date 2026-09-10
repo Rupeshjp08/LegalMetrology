@@ -68,17 +68,25 @@ export default function CameraCaptureModal({ open, onClose, onCapture }) {
     if (!open) return undefined
 
     let cancelled = false
-    setStatus('starting')
-    setErrorMessage('')
-    setIsCapturing(false)
+    const videoEl = videoRef.current
+    let activeStream = null
 
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setStatus('unsupported')
-      setErrorMessage(UNSUPPORTED_MESSAGE)
-      return undefined
+    const timer = setTimeout(() => {
+      setStatus('starting')
+      setErrorMessage('')
+      setIsCapturing(false)
+    }, 0)
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const unsupportedTimer = setTimeout(() => {
+        setStatus('unsupported')
+        setErrorMessage(UNSUPPORTED_MESSAGE)
+      }, 0)
+      return () => {
+        clearTimeout(timer)
+        clearTimeout(unsupportedTimer)
+      }
     }
-
-    let stream = null
 
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: false })
@@ -87,10 +95,13 @@ export default function CameraCaptureModal({ open, onClose, onCapture }) {
           stopStream(mediaStream)
           return
         }
-        stream = mediaStream
+        activeStream = mediaStream
         streamRef.current = mediaStream
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream
+          videoRef.current.play().catch(() => {
+            // Autoplay could be restricted by browser policy
+          })
           setStatus('ready')
         }
       })
@@ -111,8 +122,21 @@ export default function CameraCaptureModal({ open, onClose, onCapture }) {
 
     return () => {
       cancelled = true
-      if (stream) stopStream(stream)
-      streamRef.current = null
+      clearTimeout(timer)
+      if (activeStream) {
+        stopStream(activeStream)
+      }
+      if (streamRef.current) {
+        stopStream(streamRef.current)
+        streamRef.current = null
+      }
+      if (videoEl) {
+        try {
+          videoEl.srcObject = null
+        } catch {
+          // ignore
+        }
+      }
     }
   }, [open])
 
@@ -123,6 +147,15 @@ export default function CameraCaptureModal({ open, onClose, onCapture }) {
     try {
       const file = await captureFrame(videoRef)
       if (file && onCapture) {
+        stopStream(streamRef.current)
+        streamRef.current = null
+        if (videoRef.current) {
+          try {
+            videoRef.current.srcObject = null
+          } catch {
+            // ignore
+          }
+        }
         onCapture(file)
         onClose?.()
       }
@@ -134,6 +167,14 @@ export default function CameraCaptureModal({ open, onClose, onCapture }) {
   const handleClose = () => {
     stopStream(streamRef.current)
     streamRef.current = null
+    if (videoRef.current) {
+      try {
+        videoRef.current.srcObject = null
+      } catch {
+        // ignore
+      }
+    }
+    setStatus('idle')
     onClose?.()
   }
 

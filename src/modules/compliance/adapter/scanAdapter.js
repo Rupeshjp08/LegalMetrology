@@ -53,7 +53,7 @@ export function adaptScanResult(rawScanData) {
     const scanMetadata = { imageQuality, allSidesCaptured };
 
     // Locate fields source dictionary or array
-    let fieldsSource = input.declarations || input.extractedFields || input.fields || input.ocrResults || input.ocr_results || input.items || input;
+let fieldsSource = input.declarations || input.extractedFields || input.extractedProductDetails || input.fields || input.ocrResults || input.ocr_results || input.items || input;
 
     if (Array.isArray(fieldsSource)) {
       const mappedObj = {};

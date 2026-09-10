@@ -674,3 +674,19 @@
 .m5-score--bad {
   color: var(--color-danger);
 }
+
+/* Demo mode indicator */
+.m5-demo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px 10px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: #075985;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius-md);
+  margin-left: var(--space-2);
+  vertical-align: middle;
+}
