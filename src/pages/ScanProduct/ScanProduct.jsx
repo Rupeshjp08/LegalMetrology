@@ -12,14 +12,25 @@ import Card from '../../components/ui/Card/Card'
 import Icon from '../../components/ui/Icon/Icon'
 import PageHeader from '../../components/ui/PageHeader/PageHeader'
 import StatusBadge from '../../components/ui/StatusBadge/StatusBadge'
+import Modal from '../../components/ui/Modal/Modal'
 import { ROUTES } from '../../constants'
 import {
   IMAGE_LABELS,
   UPLOAD_ACCEPT_ATTR,
+  formatFileSize,
   validateImageFile,
 } from '../../utils/fileValidation'
 import CameraCaptureModal from './CameraCaptureModal'
 import QRBarcodeScannerModal from './QRBarcodeScannerModal'
+import ImageQualityCheck from '../../modules/scanning/components/ImageQualityCheck/ImageQualityCheck'
+import ImagePreprocessingPanel from '../../modules/processing/components/ImagePreprocessingPanel/ImagePreprocessingPanel'
+import OcrExtraction from '../../modules/ocr/components/OcrExtraction/OcrExtraction'
+import AiExtraction from '../../modules/extraction/components/AiExtraction/AiExtraction'
+import QualityIndicator from '../../modules/scanning/components/QualityIndicator/QualityIndicator'
+import {
+  analyzeImageQuality,
+  ImageAnalysisError,
+} from '../../modules/scanning/utils/imageQualityAnalysis'
 import {
   lookupProductByCode,
   registerProduct,
@@ -65,6 +76,26 @@ const PRODUCT_FIELD_DEFINITIONS = [
   { label: 'Manufacturing Date', keys: ['manufacturingDate', 'mfgDate', 'dateOfManufacture', 'dateOfPackaging'] },
   { label: 'Expiry / Best Before', keys: ['expiryDate', 'bestBefore', 'expDate', 'useByDate'] },
 ]
+
+const INSPECTION_STEPS = [
+  { id: 0, icon: 'image', title: 'Add Product', subtitle: 'Upload or capture images' },
+  { id: 1, icon: 'check-circle', title: 'Quality Check', subtitle: 'Analyse image quality' },
+  { id: 2, icon: 'scale', title: 'Preprocess', subtitle: 'Enhance for OCR' },
+  { id: 3, icon: 'file', title: 'Extract Text', subtitle: 'OCR package details' },
+  { id: 4, icon: 'shield', title: 'AI Extraction', subtitle: 'Gemini product extraction' },
+]
+
+const REGISTRATION_INITIAL_FORM = {
+  productName: '',
+  brand: '',
+  category: '',
+  mrp: '',
+  netQuantity: '',
+  countryOfOrigin: '',
+  batchNumber: '',
+  manufacturingDate: '',
+  expiryDate: '',
+}
 
 function pickScalarValue(value) {
   if (value === null || value === undefined) return null
@@ -121,28 +152,27 @@ export default function ScanProduct() {
 
   const [images, setImages] = useState([])
   const [uploadErrors, setUploadErrors] = useState([])
+  const [qualityResults, setQualityResults] = useState({})
   const [cameraOpen, setCameraOpen] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
+  const [replaceTargetId, setReplaceTargetId] = useState(null)
+  const [viewedImageId, setViewedImageId] = useState(null)
   const [productCode, setProductCode] = useState(null)
   const [productLookup, setProductLookup] = useState({ status: 'idle' })
-  const [continueNotice, setContinueNotice] = useState(false)
+  const [activeStep, setActiveStep] = useState(0)
+  const [maxStepReached, setMaxStepReached] = useState(0)
+  const [ocrItems, setOcrItems] = useState(null)
+  const [ocrResults, setOcrResults] = useState({})
+  const [aiExtractionInput, setAiExtractionInput] = useState(null)
+  const [aiExtractionComplete, setAiExtractionComplete] = useState(false)
   const [registrationMode, setRegistrationMode] = useState(false)
   const [registrationImage, setRegistrationImage] = useState(null)
-  const [registrationForm, setRegistrationForm] = useState({
-    productName: '',
-    brand: '',
-    category: '',
-    mrp: '',
-    netQuantity: '',
-    countryOfOrigin: '',
-    batchNumber: '',
-    manufacturingDate: '',
-    expiryDate: '',
-  })
+  const [registrationForm, setRegistrationForm] = useState(REGISTRATION_INITIAL_FORM)
   const [registrationStatus, setRegistrationStatus] = useState({ status: 'idle' })
   const [registrationPreviewUrl, setRegistrationPreviewUrl] = useState(null)
   const registrationPreviewUrlRef = useRef(null)
   const lookupIdRef = useRef(0)
+  const qualityGenRef = useRef(new Map())
 
   const openPicker = () => pickerRef.current?.click()
 
@@ -153,10 +183,40 @@ export default function ScanProduct() {
       setRegistrationPreviewUrl(url)
       registrationPreviewUrlRef.current = url
       setCameraOpen(false)
+    } else if (replaceTargetId) {
+      handleReplaceImage(replaceTargetId, file)
+      setReplaceTargetId(null)
+      setCameraOpen(false)
     } else {
       addImages([file])
     }
   }
+
+  const analyzeImage = useCallback((image) => {
+    const generation = (qualityGenRef.current.get(image.id) || 0) + 1
+    qualityGenRef.current.set(image.id, generation)
+    setQualityResults((previous) => ({ ...previous, [image.id]: { status: 'loading' } }))
+
+    analyzeImageQuality(image.file)
+      .then((result) => {
+        if (qualityGenRef.current.get(image.id) !== generation) return
+        setQualityResults((previous) => ({
+          ...previous,
+          [image.id]: { status: 'done', result },
+        }))
+      })
+      .catch((error) => {
+        if (qualityGenRef.current.get(image.id) !== generation) return
+        const message =
+          error instanceof ImageAnalysisError
+            ? error.userMessage
+            : 'The image could not be analyzed. Please try another image.'
+        setQualityResults((previous) => ({
+          ...previous,
+          [image.id]: { status: 'error', message },
+        }))
+      })
+  }, [])
 
   const performProductLookup = useCallback((code) => {
     const lookupId = ++lookupIdRef.current
@@ -243,11 +303,23 @@ export default function ScanProduct() {
 
     setUploadErrors(errors)
     setImages((previous) => [...previous, ...accepted])
-  }, [])
+    setOcrItems(null)
+    setOcrResults({})
+    setAiExtractionInput(null)
+    setAiExtractionComplete(false)
+    accepted.forEach((image) => analyzeImage(image))
+  }, [analyzeImage])
 
   const handleFilesSelected = (event) => {
-    addImages(Array.from(event.target.files || []))
+    const files = Array.from(event.target.files || [])
     event.target.value = ''
+    if (replaceTargetId) {
+      const file = files[0]
+      if (file) handleReplaceImage(replaceTargetId, file)
+      setReplaceTargetId(null)
+    } else {
+      addImages(files)
+    }
   }
 
   const releasePreviewUrl = useCallback((previewUrl) => {
@@ -257,6 +329,15 @@ export default function ScanProduct() {
   }, [])
 
   const handleRemoveImage = (id) => {
+    qualityGenRef.current.set(id, (qualityGenRef.current.get(id) || 0) + 1)
+    setQualityResults((previous) => {
+      if (!previous[id]) return previous
+      const next = { ...previous }
+      delete next[id]
+      return next
+    })
+    if (replaceTargetId === id) setReplaceTargetId(null)
+    if (viewedImageId === id) setViewedImageId(null)
     setImages((previous) => {
       const target = previous.find((image) => image.id === id)
       if (target) {
@@ -265,7 +346,10 @@ export default function ScanProduct() {
       }
       return previous.filter((image) => image.id !== id)
     })
-    setContinueNotice(false)
+    setOcrItems(null)
+    setOcrResults({})
+    setAiExtractionInput(null)
+    setAiExtractionComplete(false)
   }
 
   const handleReplaceImage = (id, file) => {
@@ -287,6 +371,21 @@ export default function ScanProduct() {
         return { ...image, file, preview: newPreviewUrl, previewUrl: newPreviewUrl }
       }),
     )
+    setOcrItems(null)
+    setOcrResults({})
+    setAiExtractionInput(null)
+    setAiExtractionComplete(false)
+    analyzeImage({ id, file })
+  }
+
+  const handleRetakeImage = (image) => {
+    setReplaceTargetId(image.id)
+    setCameraOpen(true)
+  }
+
+  const handlePickUploadTarget = (image) => {
+    setReplaceTargetId(image.id)
+    openPicker()
   }
 
   const handleLabelChange = (id, label) => {
@@ -295,7 +394,27 @@ export default function ScanProduct() {
     )
   }
 
+  const goToStep = useCallback((step) => {
+    setActiveStep(step)
+    setMaxStepReached((previous) => Math.max(previous, step))
+  }, [])
+
+  const goBackTo = useCallback((step) => {
+    if (step <= 2) {
+setOcrItems(null)
+    setOcrResults({})
+    setAiExtractionInput(null)
+    setAiExtractionComplete(false)
+    setAiExtractionComplete(false)
+    } else if (step === 3) {
+      setAiExtractionInput(null)
+    }
+    setAiExtractionComplete(false)
+    setActiveStep(step)
+  }, [])
+
   const handleContinue = () => {
+<<<<<<< Updated upstream
     setContinueNotice(true)
 
     const rawProduct =
@@ -336,7 +455,151 @@ export default function ScanProduct() {
 
     const targetRoute = ROUTES.COMPLIANCE || '/compliance'
     navigate(targetRoute, { state: { scanData: compliancePayload } })
+=======
+    goToStep(2)
+>>>>>>> Stashed changes
   }
+
+  const handleContinueToOcr = (outputs) => {
+    const items = outputs.map((output) => {
+      const original = images.find((image) => image.id === output.id)
+      return {
+        id: output.id,
+        name: output.name,
+        originalUrl: original?.previewUrl || undefined,
+        processedUrl: output.url,
+        blob: output.blob,
+      }
+    })
+    setOcrItems(items)
+    setOcrResults({})
+    goToStep(3)
+  }
+
+  const handleOcrReprocess = () => {
+    setOcrItems(null)
+    setOcrResults({})
+    setAiExtractionInput(null)
+    setAiExtractionComplete(false)
+    setAiExtractionComplete(false)
+    goToStep(2)
+  }
+
+  const handleOcrRetake = (item) => {
+    setOcrItems(null)
+    setOcrResults({})
+    setAiExtractionInput(null)
+    setAiExtractionComplete(false)
+    setAiExtractionComplete(false)
+    setReplaceTargetId(item.id)
+    setCameraOpen(true)
+    goToStep(0)
+  }
+
+  const handleOcrComplete = (results) => {
+    setOcrResults(results || {})
+  }
+
+  const handleContinueToAi = (payload) => {
+    const enriched = (payload || []).map((entry) => {
+      const item = ocrItems?.find((it) => it.name === entry.name) || ocrItems?.[0]
+      const result = ocrResults[item?.id] || {}
+      const merged = { ...entry }
+      if (!merged.rawOcrText && result.text) merged.rawOcrText = result.text
+      if (merged.ocrConfidence === undefined && typeof result.confidence === 'number') {
+        merged.ocrConfidence = result.confidence
+      }
+      return merged
+    })
+    setAiExtractionComplete(false)
+    setAiExtractionInput(enriched)
+    goToStep(4)
+  }
+
+  const handleContinueToCompliance = useCallback((finalData) => {
+    try {
+      sessionStorage.setItem('pclmcs.latest_scan', JSON.stringify(finalData))
+    } catch (err) {
+      console.warn('Could not save latest scan to sessionStorage:', err)
+    }
+    navigate(ROUTES.COMPLIANCE, { state: { scanData: finalData } })
+  }, [navigate])
+
+  const resetInspection = useCallback(() => {
+    previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+    previewUrlsRef.current = []
+    if (registrationPreviewUrlRef.current) URL.revokeObjectURL(registrationPreviewUrlRef.current)
+    registrationPreviewUrlRef.current = null
+    lookupIdRef.current += 1
+    setImages([])
+    setQualityResults({})
+    setUploadErrors([])
+    setProductCode(null)
+    setProductLookup({ status: 'idle' })
+    setOcrItems(null)
+    setOcrResults({})
+    setAiExtractionInput(null)
+    setAiExtractionComplete(false)
+    setRegistrationMode(false)
+    setRegistrationImage(null)
+    setRegistrationPreviewUrl(null)
+    setRegistrationForm(REGISTRATION_INITIAL_FORM)
+    setRegistrationStatus({ status: 'idle' })
+    setActiveStep(0)
+    setMaxStepReached(0)
+  }, [])
+
+  const qualityEntries = images.map((image) => qualityResults[image.id] || { status: 'idle' })
+  const anyQualityLoading = qualityEntries.some((entry) => entry.status === 'loading')
+  const anyQualityIdle = qualityEntries.some((entry) => entry.status === 'idle')
+  const anyQualityError = qualityEntries.some((entry) => entry.status === 'error')
+  const hasPoorQuality = qualityEntries.some(
+    (entry) => entry.status === 'done' && entry.result && entry.result.level === 'poor',
+  )
+  const hasWarningQuality = qualityEntries.some(
+    (entry) => entry.status === 'done' && entry.result && entry.result.level === 'warning',
+  )
+  const qualityAnalysisComplete =
+    qualityEntries.length > 0 && !anyQualityLoading && !anyQualityIdle && !anyQualityError
+
+  let continueHint = null
+  if (images.length === 0) {
+    continueHint = 'Add or capture at least one product image.'
+  } else if (anyQualityLoading || anyQualityIdle) {
+    continueHint = { tone: 'info', title: 'Analyzing image quality…' }
+  } else if (anyQualityError) {
+    continueHint = {
+      tone: 'error',
+      title: 'Some images could not be analyzed.',
+      body: 'Remove or replace the failed images to continue.',
+    }
+  } else if (hasPoorQuality) {
+    continueHint = {
+      tone: 'error',
+      title: 'One or more images are not suitable for processing.',
+      body: 'Retake or upload clearer images to continue.',
+    }
+  } else if (hasWarningQuality) {
+    continueHint = {
+      tone: 'warning',
+      title: 'Image quality may affect text extraction accuracy.',
+      body: 'You can continue, or retake the images for better results.',
+    }
+  }
+
+  const continueDisabled = images.length === 0 || !qualityAnalysisComplete || hasPoorQuality
+
+  const canGoStep = (step) => {
+    if (step === 0) return true
+    if (step === 1) return images.length > 0
+    if (step === 2) return qualityAnalysisComplete && !hasPoorQuality
+    if (step === 3) return Boolean(ocrItems)
+    if (step === 4) return Boolean(aiExtractionInput)
+    return false
+  }
+
+  const viewedImage = images.find((image) => image.id === viewedImageId) || null
+  const viewedQuality = viewedImage ? qualityResults[viewedImage.id] : null
 
   const handleRegistrationFormChange = (field, value) => {
     setRegistrationForm((prev) => ({ ...prev, [field]: value }))
@@ -421,7 +684,47 @@ export default function ScanProduct() {
         onChange={handleFilesSelected}
       />
 
-      <section className="scan-section" aria-labelledby="scan-methods-title">
+      <nav className="scan-stepper" aria-label="Inspection progress">
+        {INSPECTION_STEPS.map((step, index) => {
+          const isActive = index === activeStep
+          const isDone =
+            index < activeStep ||
+            (aiExtractionComplete && index === activeStep && index === INSPECTION_STEPS.length - 1)
+          const locked = index > maxStepReached || !canGoStep(index)
+          const onClick = () => {
+            if (locked || isActive) return
+            if (index < activeStep) {
+              goBackTo(index)
+            } else if (index <= maxStepReached) {
+              goToStep(index)
+            }
+          }
+          return (
+            <div
+              key={step.id}
+              className={`scan-step${isActive ? ' is-active' : ''}${isDone ? ' is-done' : ''}${locked ? ' is-locked' : ''}`}
+            >
+              <button
+                type="button"
+                className="scan-step__chip"
+                onClick={onClick}
+                disabled={locked}
+                aria-current={isActive ? 'step' : undefined}
+              >
+                <span className="scan-step__icon">
+                  {isDone ? <Icon name="check" size={16} /> : <Icon name={step.icon} size={18} />}
+                </span>
+              </button>
+              <span className="scan-step__label">{step.title}</span>
+              <span className="scan-step__sub">{step.subtitle}</span>
+            </div>
+          )
+        })}
+      </nav>
+
+      {activeStep === 0 && (
+        <div className="scan-step-panel">
+          <section className="scan-section" aria-labelledby="scan-methods-title">
         <h2 id="scan-methods-title" className="scan-section__title">
           Scan Methods
         </h2>
@@ -501,28 +804,134 @@ export default function ScanProduct() {
         </Card>
       </section>
 
-      <section className="scan-section scan-continue" aria-label="Continue inspection">
-        <Button
-          variant="primary"
-          size="lg"
-          icon="arrowRight"
-          iconPosition="right"
-          disabled={images.length === 0}
-          onClick={handleContinue}
-        >
-          Continue
-        </Button>
-        {continueNotice && (
-          <div className="scan-continue__notice" role="status">
-            <Icon name="info" size={18} className="scan-continue__notice-icon" />
-            <span>
-              Product images are ready. Further inspection steps will be added next.
-            </span>
-          </div>
-        )}
-      </section>
+      <div className="scan-step-footer">
+        <p className="scan-step-footer__hint">
+          {images.length === 0
+            ? 'Add or capture at least one product image to continue.'
+            : 'Images added. Continue to the image quality check.'}
+        </p>
+        <div className="scan-step-footer__actions">
+          <Button
+            variant="primary"
+            icon="arrowRight"
+            iconPosition="right"
+            disabled={images.length === 0}
+            onClick={() => goToStep(1)}
+          >
+            Next: Quality Check
+          </Button>
+        </div>
+      </div>
+        </div>
+      )}
 
-      {productCode && (
+      {activeStep === 1 && (
+        <div className="scan-step-panel">
+          <ImageQualityCheck
+            images={images}
+            results={qualityResults}
+            onView={(image) => setViewedImageId(image.id)}
+            onRemove={handleRemoveImage}
+            onReplace={handleReplaceImage}
+            onRetake={handleRetakeImage}
+            onPickUpload={handlePickUploadTarget}
+            onContinueAnyway={() => goToStep(2)}
+          />
+
+          <div className="scan-step-footer scan-step-footer--split">
+            <div className="scan-step-footer__actions">
+              <Button variant="outline" icon="arrowLeft" onClick={() => goBackTo(0)}>
+                Back
+              </Button>
+            </div>
+            <div className="scan-step-footer__hint">
+              {typeof continueHint === 'string' ? (
+                <span className="scan-step-footer__hint-text">{continueHint}</span>
+              ) : continueHint ? (
+                <Alert tone={continueHint.tone} title={continueHint.title}>
+                  {continueHint.body && <p>{continueHint.body}</p>}
+                </Alert>
+              ) : (
+                <span className="scan-step-footer__hint-text">
+                  Image quality is sufficient for processing.
+                </span>
+              )}
+            </div>
+            <div className="scan-step-footer__actions">
+              <Button
+                variant="primary"
+                icon="arrowRight"
+                iconPosition="right"
+                disabled={continueDisabled}
+                onClick={() => goToStep(2)}
+              >
+                Next: Preprocess
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeStep === 2 && (
+        <div className="scan-step-panel">
+          <ImagePreprocessingPanel images={images} onContinueToOcr={handleContinueToOcr} />
+
+          <div className="scan-step-footer">
+            <div className="scan-step-footer__actions">
+              <Button variant="outline" icon="arrowLeft" onClick={() => goBackTo(1)}>
+                Back
+              </Button>
+            </div>
+            <p className="scan-step-footer__hint">
+              Enhancements run automatically. Use “Continue to OCR” in the panel to extract the
+              label text in the next step.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {activeStep === 3 && ocrItems && (
+        <div className="scan-step-panel">
+          <OcrExtraction
+            items={ocrItems}
+            onReprocess={handleOcrReprocess}
+            onRetake={handleOcrRetake}
+            onContinueToAi={handleContinueToAi}
+            onOcrComplete={handleOcrComplete}
+          />
+
+          <div className="scan-step-footer">
+            <div className="scan-step-footer__actions">
+              <Button variant="outline" icon="arrowLeft" onClick={() => goBackTo(2)}>
+                Back
+              </Button>
+            </div>
+            <p className="scan-step-footer__hint">
+              Review the extracted text, then use “Continue to AI Extraction” to finish the
+              inspection pipeline.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {activeStep === 4 && aiExtractionInput && (
+        <div className="scan-step-panel">
+          <AiExtraction
+            items={aiExtractionInput}
+            productCode={productCode}
+            onBackToOcr={() => goBackTo(3)}
+            onContinueToCompliance={handleContinueToCompliance}
+            onStartNewInspection={resetInspection}
+            onExtractionSuccess={() => setAiExtractionComplete(true)}
+            onRetake={() => {
+              resetInspection()
+              setCameraOpen(true)
+            }}
+          />
+        </div>
+      )}
+
+      {activeStep === 0 && productCode && (
         <section className="scan-section" aria-labelledby="scan-product-code-title">
           <Card
             title="Product Identified"
@@ -564,7 +973,7 @@ export default function ScanProduct() {
         </section>
       )}
 
-      {productCode && productLookup.status !== 'idle' && (
+      {activeStep === 0 && productCode && productLookup.status !== 'idle' && (
         <section className="scan-section" aria-labelledby="scan-product-details-title">
           <h2 id="scan-product-details-title" className="scan-section__title">
             Product Details
@@ -886,6 +1295,42 @@ export default function ScanProduct() {
         onResult={handleScanResult}
         onRequestUpload={handleRequestUpload}
       />
+
+      <Modal
+        open={!!viewedImage}
+        onClose={() => setViewedImageId(null)}
+        title="Image Preview"
+        size="lg"
+        footer={
+          <Button variant="primary" onClick={() => setViewedImageId(null)}>
+            Close
+          </Button>
+        }
+      >
+        {viewedImage && (
+          <div className="scan-view-modal">
+            <div className="scan-view-modal__image">
+              <img src={viewedImage.previewUrl} alt={`Full size preview of ${viewedImage.file.name}`} />
+            </div>
+            <div className="scan-view-modal__meta">
+              <p className="scan-view-modal__name" title={viewedImage.file.name}>
+                {viewedImage.file.name}
+              </p>
+              <p className="scan-view-modal__sub">
+                {viewedImage.file.type || 'image'} · {formatFileSize(viewedImage.file.size)}
+              </p>
+              {viewedQuality?.status === 'done' && viewedQuality.result && (
+                <div className="scan-view-modal__quality">
+                  <QualityIndicator level={viewedQuality.result.level} />
+                  <span>
+                    Quality Score: {viewedQuality.result.score}% · {viewedQuality.result.summary}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

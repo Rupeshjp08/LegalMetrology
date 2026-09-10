@@ -1,0 +1,191 @@
+.intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+}
+
+.intro-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 21, 41, 0.72);
+  animation: intro-fade-in 0.25s ease-out;
+}
+
+.intro-overlay__panel {
+  position: relative;
+  width: min(680px, 100%);
+  max-height: calc(100vh - var(--space-8));
+  overflow-y: auto;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: intro-rise-in 0.35s ease-out;
+}
+
+.intro-overlay__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-1);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  background: linear-gradient(
+    160deg,
+    var(--color-primary) 0%,
+    var(--color-primary-dark) 100%
+  );
+  color: var(--color-text-inverse);
+}
+
+.intro-overlay__emblem {
+  width: 72px;
+  height: 72px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background: var(--color-white);
+  padding: var(--space-1);
+}
+
+.intro-overlay__govt {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.12em;
+  margin: 0;
+}
+
+.intro-overlay__ministry {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  margin: 0;
+}
+
+.intro-overlay__dept {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0;
+}
+
+.intro-overlay__body {
+  padding: var(--space-6) var(--space-8);
+  overflow: hidden;
+}
+
+.intro-overlay__badge {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--color-primary-lighter);
+  border: 1px solid var(--color-primary-lighter);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.intro-overlay__title {
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
+  color: var(--color-text);
+  margin: 0 0 var(--space-3);
+}
+
+.intro-overlay__lead {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-relaxed);
+  margin: 0 0 var(--space-5);
+}
+
+.intro-overlay__features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.intro-overlay__feature {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.intro-overlay__feature-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--color-primary-lighter);
+  color: var(--color-primary);
+}
+
+.intro-overlay__feature-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.intro-overlay__feature-text strong {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.intro-overlay__feature-text span:not(.intro-overlay__feature-text > strong) {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-normal);
+}
+
+.intro-overlay__footer {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4) var(--space-8) var(--space-6);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+
+@keyframes intro-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes intro-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .intro-overlay__features {
+    grid-template-columns: 1fr;
+  }
+
+  .intro-overlay__body,
+  .intro-overlay__footer {
+    padding-left: var(--space-5);
+    padding-right: var(--space-5);
+  }
+}

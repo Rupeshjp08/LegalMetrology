@@ -1,0 +1,43 @@
+.quality-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  background-color: var(--color-surface);
+}
+
+.quality-indicator--sm {
+  font-size: var(--font-size-xs);
+  padding: 0.15rem 0.5rem;
+}
+
+.quality-indicator__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+.quality-indicator--good {
+  color: var(--color-success);
+  border-color: rgba(19, 136, 8, 0.45);
+  background-color: var(--color-success-soft);
+}
+
+.quality-indicator--warning {
+  color: var(--color-warning);
+  border-color: rgba(180, 83, 9, 0.45);
+  background-color: var(--color-warning-soft);
+}
+
+.quality-indicator--poor {
+  color: var(--color-danger);
+  border-color: rgba(185, 28, 28, 0.45);
+  background-color: var(--color-danger-soft);
+}

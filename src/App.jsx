@@ -1,5 +1,6 @@
 import { BrowserRouter } from 'react-router-dom'
 import AppRoutesProvider from './routes/AppRoutes'
+import IntroOverlay from './components/common/IntroOverlay/IntroOverlay'
 
 /**
  * Application root.
@@ -10,6 +11,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppRoutesProvider />
+      <IntroOverlay />
     </BrowserRouter>
   )
 }

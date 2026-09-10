@@ -8,16 +8,19 @@
     "build": "vite build",
     "lint": "oxlint",
     "test:compliance": "node src/modules/compliance/__tests__/runCliTests.js",
+    "test:extraction": "node src/modules/extraction/__tests__/extractionService.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^2.21.0",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
     "axios": "^1.20.0",
     "jspdf": "^4.2.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.3"
+    "react-router-dom": "^7.18.3",
+    "tesseract.js": "^6.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",

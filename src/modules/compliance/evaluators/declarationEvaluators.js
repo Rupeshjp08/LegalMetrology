@@ -149,7 +149,7 @@ export function evaluatePackagingDate(fieldData, scanMetadata) {
     if (missingCheck) return missingCheck;
 
     const text = fieldData.rawText;
-    const dateRegex = /(0[1-9]|1[0-2])[\/\-](20\d{2}|\d{2})|((jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{4})/i;
+    const dateRegex = /(0[1-9]|1[0-2])[/-](20\d{2}|\d{2})|((jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{4})/i;
 
     if (!dateRegex.test(text)) {
         return {
@@ -168,7 +168,7 @@ export function evaluatePackagingDate(fieldData, scanMetadata) {
     };
 }
 
-export function evaluateUnitSalePrice(declarations, scanMetadata) {
+export function evaluateUnitSalePrice(declarations, _scanMetadata) {
     const mrpData = declarations?.mrp;
     const netQtyData = declarations?.netQuantity;
     const uspData = declarations?.unitSalePrice;
