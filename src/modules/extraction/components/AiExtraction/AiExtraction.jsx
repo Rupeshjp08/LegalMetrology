@@ -619,11 +619,10 @@ export default function AiExtraction({
         {status === 'error' && <StatusBadge status="error" label="Extraction failed" />}
       </div>
 
-      {/* DEMO MODE: ready state - officer starts extraction explicitly */}
+      {/* Ready state - officer starts extraction explicitly */}
       {DEMO_AI_MODE && status === 'idle' && (
         <Card title="AI PRODUCT INFORMATION EXTRACTION">
           <div className="ai-demo-notice">
-            <StatusBadge status="neutral" label="DEMO AI MODE" />
             <span className="ai-demo-notice__text">
               Information extracted from the uploaded product image using OCR.
             </span>
@@ -651,19 +650,6 @@ export default function AiExtraction({
             </div>
           )}
         </Card>
-      )}
-
-      {DEMO_AI_MODE && status === 'success' && (
-        <Alert tone="info" title="DEMO AI MODE">
-          <p>
-            Information extracted from the uploaded product image using OCR. No Gemini API was
-            used and no value was invented - every field below was detected from the actual OCR
-            text.
-          </p>
-          <p className="ai-source-line">
-            Information Source: Uploaded Product Image → OCR → Demo AI Extraction
-          </p>
-        </Alert>
       )}
 
       {status === 'success' && extractionMethod === 'image' && (
@@ -939,11 +925,7 @@ export default function AiExtraction({
                               Manual Edit
                             </span>
                           ) : row.value ? (
-                            <span
-                              className={`ai-source-badge${DEMO_AI_MODE ? ' ai-source-badge--demo' : ''}`}
-                            >
-                              {DEMO_AI_MODE ? 'DEMO MODE' : 'Source: OCR text'}
-                            </span>
+                            <span className="ai-source-badge">Source: OCR text</span>
                           ) : (
                             <span style={{ color: '#94a3b8' }}>—</span>
                           )}

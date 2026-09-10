@@ -16,71 +16,6 @@ import {
   COMPLIANCE_STATUS
 } from '../../modules/compliance'
 
-const SAMPLE_COMMODITIES = {
-  compliant_salt: {
-    metadata: {
-      productName: 'Tata Vacuum Evaporated Iodized Salt',
-      barcode: '8901058002154',
-      category: 'Food',
-      scannedAt: new Date().toISOString(),
-    },
-    extractedFields: {
-      mrp: '₹ 28.00 (inclusive of all taxes)',
-      netQuantity: '1 kg',
-      unitSalePrice: '₹ 0.028/g',
-      manufacturerName: 'Tata Consumer Products Limited, Mumbai 400099',
-      countryOfOrigin: 'India',
-      monthYearOfManufacture: '08/2026',
-      consumerCareDetails: 'Helpline: 1800-209-4500 | Email: care@tataconsumer.com',
-      fssaiLicenseNumber: '10014022003058',
-    },
-    images: [
-      {
-        url: 'https://images.unsplash.com/photo-1518110168401-f2843586aa66?auto=format&fit=crop&w=300&q=80',
-        caption: 'Tata Salt Package Panel',
-      },
-    ],
-  },
-  non_compliant_tea: {
-    metadata: {
-      productName: 'Apex Premium Assam CTC Dust Tea 500g',
-      barcode: '8901234567890',
-      category: 'Food',
-      scannedAt: new Date().toISOString(),
-    },
-    extractedFields: {
-      mrp: '₹ 350.00', // Missing 'inclusive of all taxes' statement
-      netQuantity: '500 g',
-      unitSalePrice: '', // Missing mandatory USP under Rule 6(1)(h) for >100g
-      manufacturerName: 'Apex Tea Estates Pvt Ltd, Assam', // Missing pincode
-      countryOfOrigin: 'India',
-      monthYearOfManufacture: '07/2026',
-      consumerCareDetails: '', // Missing customer care
-      fssaiLicenseNumber: '123456', // Invalid FSSAI
-    },
-    images: [],
-  },
-  unverified_atta: {
-    metadata: {
-      productName: 'Organic Whole Wheat Sharbati Atta 5kg',
-      barcode: '8909876543210',
-      category: 'Food',
-      scannedAt: new Date().toISOString(),
-    },
-    extractedFields: {
-      mrp: '₹ 320.00 (incl. of all taxes)',
-      netQuantity: '5 kg',
-      unitSalePrice: '₹ 0.064/g',
-      manufacturerName: 'Nature Pure Foods Pvt Ltd',
-      countryOfOrigin: 'India',
-      monthYearOfManufacture: '',
-      consumerCareDetails: '',
-      fssaiLicenseNumber: '10019011006543',
-    },
-    images: [],
-  },
-}
-
 function resolveScanInputData(locationState) {
   if (locationState?.scanData) {
     return locationState.scanData
@@ -206,23 +141,6 @@ export default function Compliance() {
     }, 0)
     return () => clearTimeout(timer)
   }, [location.state])
-
-  const handleLoadSampleCommodity = (scenarioKey) => {
-    const sample = SAMPLE_COMMODITIES[scenarioKey]
-    if (!sample) return
-    setActiveScanData(sample)
-    setSelectedCategory(sample.metadata.category)
-    const adapted = adaptScanToCompliance(sample)
-    const evaluated = evaluateDeclarations(
-      adapted.declarations,
-      sample.metadata.category,
-      adapted.scanMetadata,
-      adapted.inspectionId,
-      sample.metadata.productName
-    )
-    setAuditResult(evaluated)
-    setActiveFilterTab('all')
-  }
 
   const handleCategorySwitch = (newCategory) => {
     setSelectedCategory(newCategory)
@@ -466,20 +384,12 @@ export default function Compliance() {
         />
 
         <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-          <Alert tone="warning" title="No active scan found. Select a sample commodity to test immediately.">
+          <Alert tone="warning" title="No active scan found.">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginTop: '0.75rem' }}>
-              <span>Load a pre-configured sample commodity or scan a physical package.</span>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <Button variant="secondary" size="small" onClick={() => handleLoadSampleCommodity('compliant_salt')}>
-                  Load Compliant Salt
-                </Button>
-                <Button variant="secondary" size="small" onClick={() => handleLoadSampleCommodity('non_compliant_tea')}>
-                  Load Non-Compliant Tea
-                </Button>
-                <Button variant="primary" icon="camera" onClick={() => navigate(ROUTES.SCAN || '/scan')}>
-                  Open Scanner
-                </Button>
-              </div>
+              <span>Scan a physical package to begin the inspection.</span>
+              <Button variant="primary" icon="camera" onClick={() => navigate(ROUTES.SCAN || '/scan')}>
+                Open Scanner
+              </Button>
             </div>
           </Alert>
         </div>
@@ -488,7 +398,7 @@ export default function Compliance() {
           <EmptyState
             icon="barcode"
             title="No commodity loaded."
-            description="No active product scan data found. Please select a sample commodity above or scan a package to begin inspection."
+            description="No active product scan data found. Please scan a package to begin the inspection."
             action={
               <Button variant="primary" icon="camera" onClick={() => navigate(ROUTES.SCAN || '/scan')}>
                 Scan Commodity Package
@@ -573,7 +483,7 @@ export default function Compliance() {
         ]}
       />
 
-      {/* Top Header Actions & Demo Commodity Selector Bar */}
+      {/* Top Header Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
           <PageHeader
@@ -584,34 +494,6 @@ export default function Compliance() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Load Sample Commodity Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Demo Mode:</span>
-            <select
-              defaultValue=""
-              onChange={(e) => {
-                if (e.target.value) {
-                  handleLoadSampleCommodity(e.target.value)
-                  e.target.value = ''
-                }
-              }}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                color: '#0A2540',
-                cursor: 'pointer',
-              }}
-            >
-              <option value="" disabled>Load Sample Commodity...</option>
-              <option value="compliant_salt">✔ Tata Salt 1kg (Compliant)</option>
-              <option value="non_compliant_tea">✖ Premium Tea 500g (USP Violation)</option>
-              <option value="unverified_atta">⚠ Multigrain Atta 5kg (Unverified)</option>
-            </select>
-          </div>
 
           {/* Dynamic Notice Generation Button */}
           {violationsCount > 0 ? (
