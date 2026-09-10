@@ -12,6 +12,10 @@ const Company = lazy(() => import('../pages/Company/Company'))
 const Reports = lazy(() => import('../pages/Reports/Reports'))
 const NoticeGenerator = lazy(() => import('../pages/Notices/NoticeGenerator'))
 const Admin = lazy(() => import('../pages/Admin/Admin'))
+const ScanHistory = lazy(() => import('../pages/ScanHistory/ScanHistory'))
+const QRVerification = lazy(() => import('../pages/QRVerification/QRVerification'))
+const Analytics = lazy(() => import('../pages/Analytics/Analytics'))
+const Settings = lazy(() => import('../pages/Settings/Settings'))
 const About = lazy(() => import('../pages/About/About'))
 const Contact = lazy(() => import('../pages/Contact/Contact'))
 const Info = lazy(() => import('../pages/Info/Info'))
@@ -92,6 +96,34 @@ export const routeDefinitions = [
     layout: 'officer',
     requiresAuth: true,
     name: 'Admin',
+  },
+  {
+    path: ROUTES.SCAN_HISTORY,
+    element: <ScanHistory />,
+    layout: 'officer',
+    requiresAuth: true,
+    name: 'Scan History',
+  },
+  {
+    path: ROUTES.QR_VERIFICATION,
+    element: <QRVerification />,
+    layout: 'officer',
+    requiresAuth: true,
+    name: 'QR Verification',
+  },
+  {
+    path: ROUTES.ANALYTICS,
+    element: <Analytics />,
+    layout: 'officer',
+    requiresAuth: true,
+    name: 'Analytics',
+  },
+  {
+    path: ROUTES.SETTINGS,
+    element: <Settings />,
+    layout: 'officer',
+    requiresAuth: true,
+    name: 'Settings',
   },
   {
     path: ROUTES.ABOUT,
