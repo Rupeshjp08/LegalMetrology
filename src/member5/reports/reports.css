@@ -1,0 +1,270 @@
+/* ==========================================================================
+   Member 5 - PDF Compliance Report Styles
+   Official government document preview, matches dashboard theme.
+   ========================================================================== */
+
+.report-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.report-page__actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.report-page__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.report-page__btn:hover {
+  background: #f3f4f6;
+}
+
+.report-page__btn--primary {
+  color: #ffffff;
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.report-page__btn--primary:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+/* ---------- Document scroll area ---------- */
+.report-doc__scroll {
+  background: #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+/* ---------- Document (A4-like sheet) ---------- */
+.report-doc {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2.5rem 2.75rem;
+  box-shadow: 0 4px 16px rgba(15, 36, 64, 0.08);
+  font-size: 13px;
+  color: #1f2937;
+  box-sizing: border-box;
+}
+
+/* ---------- Document header ---------- */
+.report-doc__header {
+  text-align: center;
+  border-bottom: 3px solid #0f2440;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.report-doc__gov {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  text-align: left;
+  margin-bottom: 1rem;
+}
+
+.report-doc__gov-seal {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.report-doc__ministry {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f2440;
+  line-height: 1.25;
+}
+
+.report-doc__govt {
+  margin: 0.1rem 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.2;
+}
+
+.report-doc__system {
+  margin: 0.1rem 0 0;
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
+.report-doc__title {
+  margin: 0.2rem 0 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f2440;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.report-doc__legal {
+  margin: 0.25rem 0 0;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* ---------- Document sections ---------- */
+.report-doc__section {
+  margin-bottom: 1.25rem;
+}
+
+.report-doc__section-title {
+  margin: 0 0 0.6rem;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #0f2440;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.report-doc__section-body {
+  padding-left: 0.25rem;
+}
+
+/* ---------- Info grid ---------- */
+.report-doc__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.7rem 1.5rem;
+}
+
+.report-doc__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  border-bottom: 1px dashed #e5e7eb;
+  padding-bottom: 0.35rem;
+}
+
+.report-doc__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9ca3af;
+}
+
+.report-doc__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* ---------- Compliance result ---------- */
+.report-doc__result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.report-doc__score {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.report-doc__score-label,
+.report-doc__status-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9ca3af;
+}
+
+.report-doc__score-value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  color: #0f2440;
+}
+
+.report-doc__score-value span {
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.report-doc__status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: flex-start;
+}
+
+/* ---------- Lists ---------- */
+.report-doc__subheading {
+  margin: 0.7rem 0 0.35rem;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f2440;
+}
+
+.report-doc__list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.report-doc__list li {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #374151;
+}
+
+.report-doc__empty {
+  margin: 0;
+  font-size: 12px;
+  color: #16a34a;
+  font-weight: 600;
+}
+
+/* ---------- Document footer ---------- */
+.report-doc__footer {
+  margin-top: 1.75rem;
+  border-top: 2px solid #0f2440;
+  padding-top: 0.75rem;
+  text-align: center;
+}
+
+.report-doc__footer p {
+  margin: 0;
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.report-doc__footer p:first-child {
+  font-weight: 600;
+  color: #374151;
+}
