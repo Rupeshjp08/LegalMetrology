@@ -7,7 +7,7 @@ export const DEPARTMENT_NAME = 'Department of Consumer Affairs'
 export const GOVERNMENT_NAME = 'Government of India'
 
 export const NAV_ITEMS = [
-  { to: '/', label: 'Home' },
+  { to: '/home', label: 'Home' },
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/scan', label: 'Scan Product' },
   { to: '/about', label: 'About' },

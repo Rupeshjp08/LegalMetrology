@@ -1,0 +1,174 @@
+/* ─── Signup form ─────────────────────────────────── */
+.sp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Header */
+.sp__head {
+  text-align: center;
+}
+
+.sp__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.sp__subtitle {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ─── Role selector ───────────────────────────────── */
+.sp__roles {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sp__role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.sp__role {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  border: 1.5px solid var(--color-border);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.sp__role:hover {
+  border-color: var(--color-primary-light);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+
+.sp__role--active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+}
+
+.sp__role-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-bg-subtle);
+  color: var(--color-primary);
+  transition: background 0.2s ease;
+}
+
+.sp__role--active .sp__role-icon {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.sp__role-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+/* ─── Form fields ─────────────────────────────────── */
+.sp__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sp__field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+/* ─── Terms checkbox ──────────────────────────────── */
+.sp__terms {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  line-height: var(--line-height-normal);
+}
+
+.sp__checkbox {
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ─── Submit ──────────────────────────────────────── */
+.sp__submit {
+  width: 100%;
+  margin-top: 0;
+}
+
+/* ─── Alt link ────────────────────────────────────── */
+.sp__alt {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.sp__link {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.sp__link:hover {
+  text-decoration: underline;
+  color: var(--color-primary-dark);
+}
+
+/* ─── Responsive ──────────────────────────────────── */
+@media (max-width: 480px) {
+  .sp__role-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .sp__role {
+    flex-direction: row;
+    text-align: left;
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-3);
+  }
+
+  .sp__role-icon {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+
+  .sp__field-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+}

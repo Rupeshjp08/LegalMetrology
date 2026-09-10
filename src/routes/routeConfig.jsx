@@ -3,7 +3,8 @@ import { lazy } from 'react'
 import { ROUTES } from '../constants'
 
 const Home = lazy(() => import('../pages/Home/Home'))
-const LoginPlaceholder = lazy(() => import('../pages/Login/Login'))
+const LoginPage = lazy(() => import('../pages/Auth/LoginPage'))
+const SignupPage = lazy(() => import('../pages/Auth/SignupPage'))
 const Dashboard = lazy(() => import('../pages/Dashboard/Dashboard'))
 const ScanProduct = lazy(() => import('../pages/ScanProduct/ScanProduct'))
 const Compliance = lazy(() => import('../pages/Compliance/Compliance'))
@@ -34,16 +35,28 @@ const NotFound = lazy(() => import('../pages/NotFound/NotFound'))
  */
 export const routeDefinitions = [
   {
+    path: '/',
+    element: <LoginPage />,
+    layout: 'auth',
+    name: 'Login',
+  },
+  {
+    path: ROUTES.LOGIN,
+    element: <LoginPage />,
+    layout: 'auth',
+    name: 'Login',
+  },
+  {
+    path: ROUTES.SIGNUP,
+    element: <SignupPage />,
+    layout: 'auth',
+    name: 'Sign Up',
+  },
+  {
     path: ROUTES.HOME,
     element: <Home />,
     layout: 'main',
     name: 'Home',
-  },
-  {
-    path: ROUTES.LOGIN,
-    element: <LoginPlaceholder />,
-    layout: 'auth',
-    name: 'Login',
   },
   {
     path: ROUTES.DASHBOARD,

@@ -1,0 +1,198 @@
+/* ─── Login form ──────────────────────────────────── */
+.lp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Header */
+.lp__head {
+  text-align: center;
+}
+
+.lp__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.lp__subtitle {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* ─── Role selector cards ──────────────────────────── */
+.lp__roles {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.lp__role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.lp__role {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  border: 1.5px solid var(--color-border);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.lp__role:hover {
+  border-color: var(--color-primary-light);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+
+.lp__role--active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+}
+
+.lp__role-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-bg-subtle);
+  color: var(--color-primary);
+  transition: background 0.2s ease;
+}
+
+.lp__role--active .lp__role-icon {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.lp__role-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.lp__role-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-normal);
+  display: none;
+}
+
+/* ─── Form fields ─────────────────────────────────── */
+.lp__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ─── Options row ─────────────────────────────────── */
+.lp__options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lp__remember {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.lp__checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.lp__forgot {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.lp__forgot:hover {
+  text-decoration: underline;
+  color: var(--color-primary-dark);
+}
+
+/* ─── Submit button ───────────────────────────────── */
+.lp__submit {
+  width: 100%;
+  margin-top: 0;
+}
+
+/* ─── Alt link ────────────────────────────────────── */
+.lp__alt {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.lp__link {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.lp__link:hover {
+  text-decoration: underline;
+  color: var(--color-primary-dark);
+}
+
+/* ─── Responsive ──────────────────────────────────── */
+@media (max-width: 480px) {
+  .lp__role-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .lp__role {
+    flex-direction: row;
+    text-align: left;
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-3);
+  }
+
+  .lp__role-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  .lp__role-desc {
+    display: none;
+  }
+
+  .lp__options {
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: flex-start;
+  }
+}
