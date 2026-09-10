@@ -11,7 +11,12 @@ const OFFICER_NAV_ITEMS = [
   { to: '/compliance', label: 'Compliance', icon: 'scale' },
   { to: '/inspection', label: 'Inspections', icon: 'upload' },
   { to: '/company', label: 'Companies', icon: 'file' },
-  { to: '/reports', label: 'Reports', icon: 'info' },
+  { to: '/reports', label: 'Reports', icon: 'file-text' },
+  { to: '/admin', label: 'Admin Dashboard', icon: 'shield' },
+  { to: '/admin/history', label: 'Scan History', icon: 'history' },
+  { to: '/admin/qr-verification', label: 'QR Verification', icon: 'qr' },
+  { to: '/admin/analytics', label: 'Analytics', icon: 'chart' },
+  { to: '/admin/settings', label: 'Settings', icon: 'settings' },
 ]
 
 /**
