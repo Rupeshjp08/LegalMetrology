@@ -1,0 +1,27 @@
+.module-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-10) var(--space-6);
+}
+
+.module-placeholder__marker {
+  width: 48px;
+  height: 4px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-saffron);
+}
+
+.module-placeholder__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.module-placeholder__text {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  max-width: 52ch;
+}

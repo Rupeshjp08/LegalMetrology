@@ -1,0 +1,72 @@
+.camera-modal .modal__body {
+  padding: 0;
+}
+
+.camera-modal__stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background-color: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.camera-modal__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background-color: #0b1220;
+}
+
+.camera-modal__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  text-align: center;
+  background-color: var(--color-bg-subtle);
+}
+
+.camera-modal__overlay-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-neutral);
+}
+
+.camera-modal__overlay-text {
+  max-width: 46ch;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+.camera-modal__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: camera-spin 0.8s linear infinite;
+}
+
+@keyframes camera-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.camera-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}

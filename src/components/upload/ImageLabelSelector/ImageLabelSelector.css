@@ -1,0 +1,28 @@
+.label-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label-selector__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.label-selector__select {
+  width: 100%;
+  padding: 0.5rem var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.label-selector__select:focus {
+  outline: none;
+  border-color: var(--color-focus);
+  box-shadow: var(--focus-ring);
+}

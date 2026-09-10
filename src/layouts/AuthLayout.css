@@ -1,0 +1,57 @@
+.auth-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--color-bg);
+  padding: var(--space-8) var(--space-4);
+}
+
+.auth-layout__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-8);
+}
+
+.auth-layout__emblem {
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-2);
+}
+
+.auth-layout__govt {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+}
+
+.auth-layout__ministry {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.auth-layout__app {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.auth-layout__main {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-layout__footer {
+  margin-top: var(--space-8);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

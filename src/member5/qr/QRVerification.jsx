@@ -291,18 +291,13 @@ function QRVerification() {
               </button>
 
               <div className="qr-manual__hint">
-                <p>Test with a sample genuine Report ID:</p>
-                <button
-                  type="button"
-                  className="qr-manual__sample"
-                  onClick={() => {
-                    setManualReportId('RPT-2026-0857')
-                  }}
-                >
-                  RPT-2026-0857
-                </button>
-                <span>or sample QR payload:</span>
-                <code>{getSampleQrString()}</code>
+                <p>Enter a Report ID from Scan History to verify.</p>
+                {getSampleQrString() && (
+                  <>
+                    <span>Or scan this QR payload:</span>
+                    <code>{getSampleQrString()}</code>
+                  </>
+                )}
               </div>
             </form>
           </div>

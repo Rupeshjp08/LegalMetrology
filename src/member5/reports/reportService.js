@@ -1,81 +1,83 @@
 // ============================================================================
 // Member 5 - PDF Compliance Report Service
 // ----------------------------------------------------------------------------
-// This service is the SINGLE data-access layer for the Compliance Report page.
-// All sample report data lives here so the UI components never hardcode values.
+// Data-access layer for the Compliance Report page. Reads from the shared
+// scan data store (scanDataService.js) which is the single source of truth.
+// No hardcoded sample data — when the store is empty the page shows a
+// "no data" state; when real scans exist they appear automatically.
 //
-// CURRENT STATE: Uses temporary SAMPLE DATA purely for UI testing.
-// LATER: Replace the implementations below with real MongoDB / Express API
-// calls. The exported shapes follow the future backend contract so the UI
+// LATER: when the backend is ready, replace with real fetch() calls.
+// The exported shapes follow the future backend contract so the UI
 // components do NOT need to change.
 //
 // Expected Future API (Node.js/Express + MongoDB):
 //   GET /api/reports/:id -> report data
-//   (shape shown in `SAMPLE_REPORT` below)
 // ============================================================================
+
+import { getScanRecords, getChangeVersion, subscribe } from '../shared/scanDataService.js'
 
 export const API_BASE_URL = '/api/reports'
 
 // ----------------------------------------------------------------------------
-// SAMPLE REPORT DATA (UI testing only - replace with backend fetch)
+// Helpers — convert a scan record into the report shape the UI expects
 // ----------------------------------------------------------------------------
 
-const SAMPLE_REPORT = {
-  reportId: 'RPT-2026-0857',
-  scanDate: '2026-09-08 09:42 AM',
-  officer: 'Insp. Rajesh Kumar',
-  product: {
-    name: 'Amul Taaza Toned Milk',
-    brand: 'Amul',
-    netQuantity: '500 ml',
-    mrp: 'Rs. 27.00',
-    countryOfOrigin: 'India',
-  },
-  compliance: {
-    score: 41,
-    status: 'Major Violation',
-    violations: [
-      'MRP printed on label does not match the declared maximum retail price.',
-      'Net quantity declaration is missing the "e" mark (FSSAI standard).',
-      'Manufacturing and best-before dates are not printed legibly.',
-    ],
-    findings: [
-      'Product label was scanned and OCR analysis completed successfully.',
-      'MRP, net quantity and consumer care contact details were extracted for verification.',
-      'Declared MRP exceeds the permitted maximum retail price for similar category.',
-      'The label does not comply with Rule 6 (Declarations) of the Legal Metrology (Packaged Commodities) Rules, 2011.',
-    ],
-    recommendations: [
-      'Manufacturer should reprint the label with corrected MRP as per the declared price list.',
-      'Ensure the "e" mark and net quantity are printed as per standards of weights and measures.',
-      'Print manufacturing and best-before dates clearly on the primary label.',
-      'Re-scan the product after corrective action to verify compliance.',
-    ],
-  },
+function scanToReport(record) {
+  if (!record) return null
+  return {
+    reportId: record.id,
+    scanDate: record.scanDateTime,
+    officer: record.officer || '',
+    product: {
+      name: record.productName || '',
+      brand: '',
+      netQuantity: '',
+      mrp: '',
+      countryOfOrigin: 'India',
+    },
+    compliance: {
+      score: record.complianceScore ?? 0,
+      status: record.status || 'Pending',
+      violations: record.violations > 0
+        ? [`${record.violations} violation(s) detected — see Scan History for details.`]
+        : [],
+      findings: [],
+      recommendations: record.status === 'Compliant'
+        ? ['No action required — product is compliant.']
+        : ['Review the scan history for details and take corrective action.'],
+    },
+  }
 }
 
 // ----------------------------------------------------------------------------
 // Data-access functions
 // ----------------------------------------------------------------------------
 
+/** Returns the most recent scan as a report (for single-report views). */
 export function getReport() {
-  return SAMPLE_REPORT
+  const records = getScanRecords()
+  return scanToReport(records[0]) || scanToReport(null)
 }
 
-export function getReportById(_reportId) {
-  // UI testing: return the same sample report regardless of id.
-  return SAMPLE_REPORT
+/** Look up a specific report by scan id. */
+export function getReportById(reportId) {
+  if (!reportId) return null
+  const records = getScanRecords()
+  const match = records.find((record) => record.id === reportId)
+  return scanToReport(match)
 }
+
+// Expose change version / subscribe so the UI can react to store mutations.
+export { getChangeVersion, subscribe }
 
 // ----------------------------------------------------------------------------
-// Async wrappers (future-proofing): when the backend is ready these become
-// real fetch() calls returning the same shape.
+// Async wrappers (future-proofing)
 // ----------------------------------------------------------------------------
 
 export async function getReportAsync() {
-  return Promise.resolve(SAMPLE_REPORT)
+  return Promise.resolve(getReport())
 }
 
-export async function getReportByIdAsync(_reportId) {
-  return Promise.resolve(getReportById(_reportId))
+export async function getReportByIdAsync(reportId) {
+  return Promise.resolve(getReportById(reportId))
 }

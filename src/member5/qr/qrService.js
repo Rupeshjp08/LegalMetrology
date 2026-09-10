@@ -5,73 +5,22 @@
 // The reportId is the main verification identifier (matches the PDF Report's
 // reportId).
 //
-// CURRENT STATE: Uses temporary SAMPLE DATA purely for UI testing.
-// LATER: Replace the implementations below with real MongoDB / Express API
-// calls. The exported function signatures and return shapes are designed to
-// match the future backend contract so the UI components do NOT need to change.
+// Reads from the shared scan data store (scanDataService.js) — no hardcoded
+// sample data. When the store is empty verification will return "invalid";
+// once real scans exist they are verified automatically.
+//
+// LATER: when the backend is ready, replace with real fetch() calls.
+// The exported function signatures and return shapes are designed to
+// match the future backend contract so the UI components do NOT change.
 //
 // Expected Future API (Node.js/Express + MongoDB):
 //   POST /api/qr/verify   { reportId } -> verification result + report details
 //   GET  /api/reports/:id -> report details (for cross-checking)
 // ============================================================================
 
+import { getScanRecords } from '../shared/scanDataService.js'
+
 export const API_BASE_URL = '/api/qr'
-
-// ----------------------------------------------------------------------------
-// TEMPORARY SAMPLE DATA (UI testing only - replace with backend lookup)
-// ----------------------------------------------------------------------------
-
-// Registry of genuine compliance reports. reportId is the verification key.
-const SAMPLE_REPORT_REGISTRY = {
-  'RPT-2026-0857': {
-    reportId: 'RPT-2026-0857',
-    scanDate: '2026-09-08 09:42 AM',
-    officer: 'Insp. Rajesh Kumar',
-    product: {
-      name: 'Amul Taaza Toned Milk',
-      brand: 'Amul',
-      netQuantity: '500 ml',
-      mrp: 'Rs. 27.00',
-      countryOfOrigin: 'India',
-    },
-    compliance: {
-      score: 92,
-      status: 'Compliant',
-    },
-  },
-  'RPT-2026-0856': {
-    reportId: 'RPT-2026-0856',
-    scanDate: '2026-09-07 04:20 PM',
-    officer: 'Insp. Rajesh Kumar',
-    product: {
-      name: 'Britannia Good Day',
-      brand: 'Britannia',
-      netQuantity: '200 g',
-      mrp: 'Rs. 30.00',
-      countryOfOrigin: 'India',
-    },
-    compliance: {
-      score: 68,
-      status: 'Minor Issue',
-    },
-  },
-  'RPT-2026-0855': {
-    reportId: 'RPT-2026-0855',
-    scanDate: '2026-09-06 11:05 AM',
-    officer: 'Insp. Meera Nair',
-    product: {
-      name: 'Fortune Sunflower Oil',
-      brand: 'Fortune',
-      netQuantity: '1 L',
-      mrp: 'Rs. 155.00',
-      countryOfOrigin: 'India',
-    },
-    compliance: {
-      score: 95,
-      status: 'Compliant',
-    },
-  },
-}
 
 // ----------------------------------------------------------------------------
 // QR payload encode / decode
@@ -108,16 +57,25 @@ export function decodeQrPayload(rawText) {
 }
 
 // ----------------------------------------------------------------------------
-// Verification (UI-side lookup on sample data; later runs on the backend)
+// Verification — looks up scan records from the shared data store
 // ----------------------------------------------------------------------------
 
 export function verifyReportId(reportId) {
-  const report = SAMPLE_REPORT_REGISTRY[reportId]
-
-  if (!report) {
+  if (!reportId) {
     return {
       valid: false,
-      message: 'Invalid or unverified report.',
+      message: 'No report ID provided.',
+      report: null,
+    }
+  }
+
+  const records = getScanRecords()
+  const match = records.find((record) => record.id === reportId)
+
+  if (!match) {
+    return {
+      valid: false,
+      message: 'The report ID could not be verified against the compliance records.',
       report: null,
     }
   }
@@ -125,7 +83,22 @@ export function verifyReportId(reportId) {
   return {
     valid: true,
     message: 'This report is genuine and verified from the official system.',
-    report,
+    report: {
+      reportId: match.id,
+      scanDate: match.scanDateTime,
+      officer: match.officer || '',
+      product: {
+        name: match.productName || '',
+        brand: '',
+        netQuantity: '',
+        mrp: '',
+        countryOfOrigin: 'India',
+      },
+      compliance: {
+        score: match.complianceScore ?? 0,
+        status: match.status || 'Pending',
+      },
+    },
   }
 }
 
@@ -135,7 +108,7 @@ export function verifyQrData(rawText) {
   if (!payload || !payload.reportId) {
     return {
       valid: false,
-      message: 'Invalid or unverified report.',
+      message: 'The scanned code is not a valid compliance report QR code.',
       report: null,
     }
   }
@@ -144,25 +117,31 @@ export function verifyQrData(rawText) {
 }
 
 // ----------------------------------------------------------------------------
-// Data-access helpers (future backend contract)
+// Data-access helpers
 // ----------------------------------------------------------------------------
 
+/** Returns all known report IDs (for UI hints / test helpers). */
 export function getKnownReportIds() {
-  return Object.keys(SAMPLE_REPORT_REGISTRY)
+  return getScanRecords().map((record) => record.id)
 }
 
+/** Builds a sample QR string from the latest scan record (UI testing helper). */
 export function getSampleQrString() {
-  // UI testing helper: the exact QR payload for a genuine report.
-  const reportId = getKnownReportIds()[0]
-  return encodeQrPayload(reportId)
+  const records = getScanRecords()
+  if (records.length === 0) return ''
+  return encodeQrPayload(records[0].id)
 }
 
-// Async wrappers: future-proofing for when verification is a backend call.
+// ----------------------------------------------------------------------------
+// Async wrappers (future-proofing)
+// ----------------------------------------------------------------------------
+
 export async function verifyQrDataAsync(rawText) {
   return Promise.resolve(verifyQrData(rawText))
 }
 
-export async function fetchReportDetailsAsync(_reportId) {
-  // Later: GET /api/reports/:id from the backend.
-  return Promise.resolve(SAMPLE_REPORT_REGISTRY)
+export async function fetchReportDetailsAsync(reportId) {
+  const records = getScanRecords()
+  const match = records.find((record) => record.id === reportId)
+  return match || null
 }
