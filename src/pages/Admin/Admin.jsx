@@ -13,6 +13,7 @@ import {
   getOverview,
   getRecentRecords,
   getComplianceOverview,
+  isDemoMode,
 } from '../../modules/admin/services/scanHistoryStore'
 import '../../modules/admin/admin.css'
 
@@ -174,13 +175,19 @@ export default function AdminDashboard() {
   const overview = getOverview()
   const recentRecords = getRecentRecords(5)
   const complianceOverview = getComplianceOverview()
+  const demo = isDemoMode()
 
   return (
     <div className="m5-page">
       <PageHeader
         overline="PCLMCS · Officer Workspace"
         title="Admin Dashboard"
-        description="Compliance administration, inspection history, verification and departmental analytics."
+        description={
+          <>
+            Compliance administration, inspection history, verification and departmental analytics.
+            {demo && <span className="m5-demo-badge">Demo Data</span>}
+          </>
+        }
         actions={
           <Button
             variant="secondary"

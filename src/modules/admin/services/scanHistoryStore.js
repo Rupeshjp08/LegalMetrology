@@ -95,11 +95,175 @@ function normalize(record) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Demo fallback data (in-memory only, never persisted to localStorage)
+// Used when the real inspection store is completely empty so the Dashboard,
+// Analytics, Scan History, Reports and QR Verification pages show realistic
+// placeholder data for demo / UI-testing purposes.
+// ---------------------------------------------------------------------------
+
+function buildDemoVerdict(summaryCounts) {
+  return {
+    overallStatus: summaryCounts.potentialNonCompliance > 0
+      ? 'NON_COMPLIANT'
+      : summaryCounts.warnings > 0
+        ? 'WARNING'
+        : summaryCounts.verificationRequired > 0
+          ? 'PENDING'
+          : 'COMPLIANT',
+    isCompliant: summaryCounts.potentialNonCompliance === 0 && summaryCounts.warnings === 0,
+    actionRequired: summaryCounts.potentialNonCompliance > 0 ? 'OFFICER_REVIEW' : 'NONE',
+    compoundableUnderSection49: false,
+    compoundingSectionReference: '',
+    summaryCounts,
+  }
+}
+
+function demoRecord(id, productName, category, timestamp, status, score, violationsList) {
+  const verdict = buildDemoVerdict({
+    verified: status === 'compliant' ? 8 : 5,
+    warnings: status === 'warning' ? 2 : 0,
+    verificationRequired: status === 'pending' ? 3 : 0,
+    potentialNonCompliance: status === 'non-compliant' ? 2 : 0,
+  })
+  return {
+    id,
+    productName,
+    category,
+    scannedAt: timestamp,
+    scanDateKey: String(timestamp).slice(0, 10),
+    scanDateTime: formatScanDateTime(timestamp),
+    status,
+    complianceScore: score,
+    violations: violationsList.length,
+    violationsList,
+    statutoryVerdict: verdict,
+    officerAuditTrail: [],
+  }
+}
+
+function getDemoRecords() {
+  const now = new Date()
+  const day = (offset) => {
+    const d = new Date(now)
+    d.setDate(d.getDate() - offset)
+    return d.toISOString()
+  }
+  const hour = (offset, h) => {
+    const d = new Date(now)
+    d.setDate(d.getDate() - offset)
+    d.setHours(h, Math.floor(Math.random() * 60), 0, 0)
+    return d.toISOString()
+  }
+
+  return [
+    demoRecord(
+      'INS-2026-1001',
+      'Packaged Food Product',
+      'Food & Beverages',
+      hour(0, 9),
+      'compliant',
+      94,
+      [],
+    ),
+    demoRecord(
+      'INS-2026-1002',
+      'Household Consumer Product',
+      'Household Items',
+      hour(0, 11),
+      'warning',
+      72,
+      [
+        { rule: 'Rule 6(1)(e)', statutoryClause: '6(1)(e)', capturedEvidence: 'MRP declaration unclear' },
+        { rule: 'Rule 6(1)(h)', statutoryClause: '6(1)(h)', capturedEvidence: 'Unit sale price not prominently displayed' },
+      ],
+    ),
+    demoRecord(
+      'INS-2026-1003',
+      'Personal Care Product',
+      'Personal Care',
+      day(1),
+      'compliant',
+      100,
+      [],
+    ),
+    demoRecord(
+      'INS-2026-1004',
+      'Packaged Food Product',
+      'Food & Beverages',
+      day(1),
+      'non-compliant',
+      38,
+      [
+        { rule: 'Rule 6(1)(b)', statutoryClause: 'Second Schedule', capturedEvidence: 'Net quantity declaration missing' },
+        { rule: 'Rule 6(1)(e)', statutoryClause: '6(1)(e)', capturedEvidence: 'MRP not printed on label' },
+        { rule: 'Rule 6(10)', statutoryClause: '6(10)', capturedEvidence: 'Country of origin not declared' },
+      ],
+    ),
+    demoRecord(
+      'INS-2026-1005',
+      'Household Consumer Product',
+      'Household Items',
+      day(2),
+      'compliant',
+      88,
+      [],
+    ),
+    demoRecord(
+      'INS-2026-1006',
+      'Personal Care Product',
+      'Personal Care',
+      day(3),
+      'pending',
+      65,
+      [
+        { rule: 'Rule 6(2)', statutoryClause: '6(2)', capturedEvidence: 'Consumer care contact details require verification' },
+      ],
+    ),
+    demoRecord(
+      'INS-2026-1007',
+      'Packaged Food Product',
+      'Food & Beverages',
+      day(4),
+      'compliant',
+      96,
+      [],
+    ),
+    demoRecord(
+      'INS-2026-1008',
+      'Household Consumer Product',
+      'Household Items',
+      day(5),
+      'warning',
+      78,
+      [
+        { rule: 'Rule 6(1)(d)', statutoryClause: '6(1)(d)', capturedEvidence: 'Date of packing not legible' },
+      ],
+    ),
+  ]
+}
+
+// Track whether the current view is using demo data.
+let _demoMode = false
+
+/** Returns true when the dashboard is showing demo fallback data. */
+export function isDemoMode() {
+  return _demoMode
+}
+
 export function getInspectionRecords() {
-  return readRaw()
+  const real = readRaw()
     .map(normalize)
     .filter((record) => Boolean(record.id))
     .sort((a, b) => String(b.scannedAt).localeCompare(String(a.scannedAt)))
+
+  if (real.length > 0) {
+    _demoMode = false
+    return real
+  }
+
+  _demoMode = true
+  return getDemoRecords()
 }
 
 export function getRecordById(id) {

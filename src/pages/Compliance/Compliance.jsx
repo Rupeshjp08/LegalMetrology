@@ -58,10 +58,11 @@ export default function Compliance() {
 
   useEffect(() => {
     const freshScanData = location.state?.scanData || resolveScanInputData(location.state)
-    if (freshScanData) {
+    if (!freshScanData) return
+    const timer = setTimeout(() => {
       setActiveScanData(freshScanData)
       const adapted = adaptScanToCompliance(freshScanData)
-      const categoryToUse = freshScanData.metadata?.category || adapted.product?.category || selectedCategory || 'Food'
+      const categoryToUse = freshScanData.metadata?.category || adapted.product?.category || 'Food'
       setSelectedCategory(categoryToUse)
       const evaluated = evaluateDeclarations(
         adapted.declarations,
@@ -71,7 +72,8 @@ export default function Compliance() {
         freshScanData.metadata?.productName || adapted.product?.name
       )
       setAuditResult(evaluated)
-    }
+    }, 0)
+    return () => clearTimeout(timer)
   }, [location.state])
 
   const handleCategorySwitch = (newCategory) => {

@@ -1,0 +1,273 @@
+/* ==========================================================================
+   Member 5 - Analytics Styles
+   Follows the existing Member 5 dashboard theme & compact typography.
+   ========================================================================== */
+
+.analytics-page {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Summary cards ---------- */
+.analytics-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 1.5rem;
+}
+
+.analytics-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-left-width: 4px;
+  border-radius: 12px;
+  padding: 1.15rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(15, 36, 64, 0.05);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.analytics-card--blue { border-left-color: #2563eb; }
+.analytics-card--green { border-left-color: #16a34a; }
+.analytics-card--red { border-left-color: #dc2626; }
+.analytics-card--amber { border-left-color: #f59e0b; }
+
+.analytics-card__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.analytics-card--blue .analytics-card__icon { background: #2563eb; }
+.analytics-card--green .analytics-card__icon { background: #16a34a; }
+.analytics-card--red .analytics-card__icon { background: #dc2626; }
+.analytics-card--amber .analytics-card__icon { background: #f59e0b; }
+
+.analytics-card__value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #111827;
+}
+
+.analytics-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-top: 0.15rem;
+}
+
+.analytics-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.3rem;
+}
+
+.analytics-card__trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+}
+
+.analytics-card__trend--up {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.analytics-card__trend--down {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.analytics-card__subtitle {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ---------- Charts grid ---------- */
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 1.5rem;
+}
+
+.analytics-grid--single {
+  grid-template-columns: minmax(0, 480px);
+}
+
+.analytics-chart {
+  margin-bottom: 0;
+}
+
+.analytics-chart--full {
+  margin-bottom: 1.5rem;
+}
+
+.analytics-chart__body {
+  height: 300px;
+  padding: 0.75rem 0.75rem 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.analytics-chart__body--trend {
+  height: 260px;
+}
+
+/* ---------- Scan trend day strip ---------- */
+.analytics-chart__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.analytics-chart__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.analytics-chart__day-bar {
+  width: 8px;
+  min-height: 4px;
+  border-radius: 4px;
+  background: #dbeafe;
+  transition: background 0.15s ease;
+}
+
+.analytics-chart__day-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.analytics-chart__day-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+/* ---------- Compliance rate gauge ---------- */
+.analytics-rate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.analytics-rate__gauge {
+  position: relative;
+  width: 100%;
+  max-width: 240px;
+  height: 200px;
+}
+
+.analytics-rate__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.analytics-rate__value {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  color: #0f2440;
+}
+
+.analytics-rate__label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+
+.analytics-rate__legend {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.analytics-rate__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 12px;
+  color: #374151;
+}
+
+.analytics-rate__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* ---------- Empty state ---------- */
+.analytics-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #9ca3af;
+}
+
+.analytics-empty p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1024px) {
+  .analytics-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .analytics-cards {
+    grid-template-columns: 1fr;
+  }
+}

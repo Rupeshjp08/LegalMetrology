@@ -414,50 +414,7 @@ setOcrItems(null)
   }, [])
 
   const handleContinue = () => {
-<<<<<<< Updated upstream
-    setContinueNotice(true)
-
-    const rawProduct =
-      productLookup?.product ||
-      productLookup?.data?.product ||
-      productLookup?.data ||
-      (registrationStatus.status === 'success' || registrationImage ? registrationForm : null) ||
-      {}
-
-    const compliancePayload = {
-      metadata: {
-        barcode: productCode?.code || productCode?.value || rawProduct?.barcode || rawProduct?.code || 'MANUAL-SCAN',
-        productName: rawProduct?.product_name || rawProduct?.productName || rawProduct?.name || 'Scanned Commodity',
-        category: rawProduct?.category || 'General',
-        scannedAt: new Date().toISOString(),
-      },
-      extractedFields: {
-        mrp: rawProduct?.mrp || rawProduct?.price,
-        netQuantity: rawProduct?.net_quantity || rawProduct?.netQuantity || rawProduct?.quantity,
-        unitSalePrice: rawProduct?.usp || rawProduct?.unit_sale_price || rawProduct?.unitSalePrice,
-        manufacturerName: rawProduct?.manufacturer || rawProduct?.manufacturerName || rawProduct?.brand,
-        countryOfOrigin: rawProduct?.country_of_origin || rawProduct?.countryOfOrigin || rawProduct?.origin || 'India',
-        consumerCareDetails: rawProduct?.consumer_care || rawProduct?.consumerCareDetails || rawProduct?.customer_care,
-        manufacturingDate: rawProduct?.mfg_date || rawProduct?.manufacturing_date || rawProduct?.manufacturingDate,
-      },
-      images: images.map((img) => ({
-        id: img.id,
-        label: img.label,
-        url: img.preview || img.previewUrl,
-      })),
-    }
-
-    try {
-      sessionStorage.setItem('pclmcs.latest_scan', JSON.stringify(compliancePayload))
-    } catch (err) {
-      console.error('Failed to save scan payload to sessionStorage:', err)
-    }
-
-    const targetRoute = ROUTES.COMPLIANCE || '/compliance'
-    navigate(targetRoute, { state: { scanData: compliancePayload } })
-=======
     goToStep(2)
->>>>>>> Stashed changes
   }
 
   const handleContinueToOcr = (outputs) => {

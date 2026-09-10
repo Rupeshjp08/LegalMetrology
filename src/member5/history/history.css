@@ -1,0 +1,224 @@
+/* ==========================================================================
+   Member 5 - Scan History Styles
+   Follows the existing Admin Dashboard visual style & compact typography.
+   ========================================================================== */
+
+.history-page {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Filter bar ---------- */
+.history-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 36, 64, 0.05);
+  margin-bottom: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.history-filters__search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 260px;
+  min-width: 0;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+}
+
+.history-filters__search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: #111827;
+  font-family: inherit;
+  outline: none;
+}
+
+.history-filters__search input::placeholder {
+  color: #9ca3af;
+}
+
+.history-filters__field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  color: #6b7280;
+}
+
+.history-filters__field label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.history-filters__field select,
+.history-filters__field input[type='date'] {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: #111827;
+  font-family: inherit;
+  outline: none;
+}
+
+.history-filters__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #2563eb;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.history-filters__button:hover {
+  background: #1d4ed8;
+}
+
+/* ---------- Table ---------- */
+.history-table {
+  min-width: 960px;
+}
+
+.history-table__sno {
+  color: #6b7280;
+  font-weight: 600;
+  text-align: center;
+}
+
+.history-table__empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 2rem 1rem;
+}
+
+/* ---------- Actions ---------- */
+.history-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.history-actions__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #2563eb;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.history-actions__btn:hover {
+  background: #eff6ff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+}
+
+.history-actions__btn--pdf {
+  color: #dc2626;
+}
+
+.history-actions__btn--pdf:hover {
+  background: #fef2f2;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.2);
+}
+
+/* ---------- Pagination ---------- */
+.history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.9rem 1.25rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.history-pagination__info {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.history-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.history-pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.history-pagination__btn:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.history-pagination__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.history-pagination__num {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 0.4rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.history-pagination__num:hover {
+  background: #f3f4f6;
+}
+
+.history-pagination__num--active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}

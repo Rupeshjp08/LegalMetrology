@@ -58,6 +58,7 @@ export const ROUTES = {
   QR_VERIFICATION: '/admin/qr-verification',
   ANALYTICS: '/admin/analytics',
   SETTINGS: '/admin/settings',
+  COMPANY_NOTIFICATIONS: '/company-notifications',
   ABOUT: '/about',
   CONTACT: '/contact',
   PRIVACY: '/privacy',

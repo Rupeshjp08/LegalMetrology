@@ -1,0 +1,97 @@
+.status-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.status-timeline__step {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+}
+
+.status-timeline__step:last-child {
+  padding-bottom: 0;
+}
+
+/* connector line running down from the marker */
+.status-timeline__step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 20px;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--color-border);
+}
+
+.status-timeline__step.is-past:not(:last-child)::after {
+  background-color: var(--color-success);
+}
+
+.status-timeline__marker {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-strong);
+  background-color: var(--color-surface);
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+
+.status-timeline__step.is-current .status-timeline__marker {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-lighter);
+}
+
+.status-timeline__step.is-past .status-timeline__marker {
+  border-color: var(--color-success);
+  background-color: var(--color-success);
+}
+
+.status-timeline__step.is-future .status-timeline__marker {
+  background-color: var(--color-surface);
+}
+
+.status-timeline__content {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-timeline__label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.status-timeline__step.is-current .status-timeline__label {
+  color: var(--color-primary);
+}
+
+.status-timeline__step.is-past .status-timeline__label {
+  color: var(--color-success-dark, var(--color-green-dark));
+}
+
+.status-timeline__note {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.status-timeline--compact {
+  gap: 0;
+}
+
+@media (max-width: 767px) {
+  .status-timeline {
+    gap: 0;
+  }
+}
