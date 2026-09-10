@@ -10,6 +10,7 @@ const Compliance = lazy(() => import('../pages/Compliance/Compliance'))
 const Inspection = lazy(() => import('../pages/Inspection/Inspection'))
 const Company = lazy(() => import('../pages/Company/Company'))
 const Reports = lazy(() => import('../pages/Reports/Reports'))
+const NoticeGenerator = lazy(() => import('../pages/Notices/NoticeGenerator'))
 const Admin = lazy(() => import('../pages/Admin/Admin'))
 const ScanHistory = lazy(() => import('../pages/ScanHistory/ScanHistory'))
 const QRVerification = lazy(() => import('../pages/QRVerification/QRVerification'))
@@ -85,6 +86,13 @@ export const routeDefinitions = [
     layout: 'officer',
     requiresAuth: true,
     name: 'Reports',
+  },
+  {
+    path: ROUTES.NOTICES,
+    element: <NoticeGenerator />,
+    layout: 'officer',
+    requiresAuth: true,
+    name: 'Statutory Notices',
   },
   {
     path: ROUTES.ADMIN,

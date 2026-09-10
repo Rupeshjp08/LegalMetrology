@@ -1,260 +1,394 @@
-import { useEffect, useState } from 'react'
+// src/pages/Reports/Reports.jsx
+import React, { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Card from '../../components/ui/Card/Card'
-import Table from '../../components/ui/Table/Table'
+import Button from '../../components/ui/Button/Button'
 import StatusBadge from '../../components/ui/StatusBadge/StatusBadge'
 import PageHeader from '../../components/ui/PageHeader/PageHeader'
-import Button from '../../components/ui/Button/Button'
-import Modal from '../../components/ui/Modal/Modal'
-import {
-  subscribe,
-  getVersion,
-} from '../../modules/admin/services/scanHistoryStore'
-import { buildReport, getReportList } from '../../modules/admin/services/reportService'
-import { generateInspectionPdf } from '../../modules/admin/services/pdfGenerator'
-import '../../modules/admin/admin.css'
+import Breadcrumb from '../../components/layout/Breadcrumb/Breadcrumb'
+import NoticeGenerator from '../Notices/NoticeGenerator'
+import { ROUTES } from '../../constants'
+import './Reports.css'
 
-function openPdfInNewTab(dataUri) {
-  const byteString = window.atob(dataUri.split(',')[1])
-  const bytes = new Uint8Array(byteString.length)
-  for (let i = 0; i < byteString.length; i += 1) {
-    bytes[i] = byteString.charCodeAt(i)
-  }
-  const blob = new Blob([bytes], { type: 'application/pdf' })
-  const url = URL.createObjectURL(blob)
-  const win = window.open(url, '_blank', 'noopener')
-  if (!win) {
-    URL.revokeObjectURL(url)
-    return false
-  }
-  window.setTimeout(() => URL.revokeObjectURL(url), 60000)
-  return true
+const MOCK_REPORT = {
+  inspectionId: 'INS-2026-0042',
+  inspectionDate: new Date().toISOString(),
+  officerName: 'Inspection Officer (Legal Metrology)',
+  commodity: {
+    barcode: '8901234567890',
+    productName: 'Standard Packaged Biscuits 250g',
+    category: 'Food & Beverages',
+    manufacturer: 'Sunrise Bakeries Ltd, Plot 42, Peenya, Bengaluru',
+    mrp: '₹40.00 (inclusive of all taxes)',
+    netQuantity: '250 g',
+  },
+  summary: {
+    totalRules: 7,
+    verifiedCount: 5,
+    verificationRequiredCount: 1,
+    warningCount: 0,
+    nonComplianceCount: 1,
+    overallVerdict: 'NON_COMPLIANT',
+    statutoryCitation: 'Liable for action under Section 36(1) of Legal Metrology Act, 2009',
+  },
+  rules: [
+    {
+      ruleId: 'LM-R6-03-MANUFACTURER',
+      ruleName: 'Name & Address of Manufacturer / Packer',
+      legalReference: 'Rule 6(1)(a) Legal Metrology (Packaged Commodities) Rules, 2011',
+      penalSection: 'Section 36(1), Legal Metrology Act, 2009',
+      statutoryDirective: 'Complete commercial name and operational premises address must be clearly legible.',
+      status: 'VERIFIED',
+      message: 'Manufacturer name and registered factory address are clearly printed.',
+      extractedValue: 'Sunrise Bakeries Ltd, Plot 42, Peenya, Bengaluru',
+    },
+    {
+      ruleId: 'LM-R6-05-ORIGIN',
+      ruleName: 'Country of Origin',
+      legalReference: 'Rule 6(10) Legal Metrology (Packaged Commodities) Rules, 2011',
+      penalSection: 'Section 36(1), Legal Metrology Act, 2009',
+      statutoryDirective: 'Country of origin must be stated explicitly.',
+      status: 'VERIFIED',
+      message: 'Country of origin is declared as India on principal display panel.',
+      extractedValue: 'Made in India',
+    },
+    {
+      ruleId: 'LM-R6-02-NET-QTY',
+      ruleName: 'Net Quantity Declaration',
+      legalReference: 'Rule 6(1)(b) & Second Schedule',
+      penalSection: 'Section 36(1) & Section 39, Legal Metrology Act, 2009',
+      statutoryDirective: 'Net quantity must be declared using standard metric units.',
+      status: 'VERIFIED',
+      message: 'Net quantity standard unit (g) is valid and clear.',
+      extractedValue: '250 g',
+    },
+    {
+      ruleId: 'LM-R6-01-MRP',
+      ruleName: 'Maximum Retail Price (MRP) & Tax Statement',
+      legalReference: 'Rule 6(1)(e) Legal Metrology (Packaged Commodities) Rules, 2011',
+      penalSection: 'Section 36(1), Legal Metrology Act, 2009',
+      statutoryDirective: 'MRP must be stated explicitly inclusive of all taxes.',
+      status: 'VERIFIED',
+      message: 'MRP formatted with inclusive of all taxes statement.',
+      extractedValue: 'MRP ₹40.00 (inclusive of all taxes)',
+    },
+    {
+      ruleId: 'LM-R6-07-USP',
+      ruleName: 'Unit Sale Price (USP)',
+      legalReference: 'Rule 6(1)(h) Legal Metrology (Packaged Commodities) Rules, 2011',
+      penalSection: 'Section 36(1), Legal Metrology Act, 2009',
+      statutoryDirective: 'Price per unit measurement mandatory for > 1kg/1L.',
+      status: 'VERIFICATION_REQUIRED',
+      message: 'Unit sale price declaration requires officer manual review.',
+      extractedValue: '₹0.16 per g',
+    },
+    {
+      ruleId: 'LM-R6-04-CONSUMER-CARE',
+      ruleName: 'Consumer Care Cell Details',
+      legalReference: 'Rule 6(2) Consumer Grievance Contact',
+      penalSection: 'Section 36(1), Legal Metrology Act, 2009',
+      statutoryDirective: 'Mandatory contact details of consumer grievance cell.',
+      status: 'POTENTIAL_NON_COMPLIANCE',
+      message: 'Missing toll-free helpline number or email address on package label.',
+      extractedValue: null,
+      officerNote: 'Missing mandatory toll-free consumer care details on side panel.',
+    },
+  ],
+  officerNotes: 'Package physically examined. Missing mandatory toll-free consumer care details on side panel.',
 }
 
-function PreviewBody({ report }) {
-  if (!report) return null
+function resolveReportData(locationState) {
+  if (locationState?.report) {
+    return locationState.report
+  }
+  try {
+    const sessionSaved = sessionStorage.getItem('pclmcs.latest_report')
+    if (sessionSaved) {
+      return JSON.parse(sessionSaved)
+    }
+  } catch (err) {
+    console.warn('Could not parse sessionStorage report data:', err)
+  }
+  return MOCK_REPORT
+}
 
-  const counts = report.summaryCounts || {}
-  const verdict = report.statutoryVerdict || {}
-  const countsList = [
-    { label: 'Verified', value: counts.verified || 0 },
-    { label: 'Warnings', value: counts.warnings || 0 },
-    { label: 'Verification Required', value: counts.verificationRequired || 0 },
-    { label: 'Potential Non-Compliance', value: counts.potentialNonCompliance || 0 },
-  ]
+function getVerdictProps(verdict) {
+  switch (verdict) {
+    case 'NON_COMPLIANT':
+    case 'POTENTIAL_NON_COMPLIANCE':
+      return {
+        tone: 'danger',
+        label: 'NON-COMPLIANT',
+        bannerClass: 'reports-verdict-banner--non_compliant',
+        bannerTitle: 'VIOLATION DETECTED — ACTION RECOMMENDED',
+        bannerSubtitle: 'Liable for statutory action under Section 36(1) of Legal Metrology Act, 2009.',
+      }
+    case 'PENDING_VERIFICATION':
+    case 'VERIFICATION_REQUIRED':
+    case 'PENDING':
+      return {
+        tone: 'warning',
+        label: 'PENDING VERIFICATION',
+        bannerClass: 'reports-verdict-banner--pending_verification',
+        bannerTitle: 'VERIFICATION INCOMPLETE',
+        bannerSubtitle: 'Certain statutory declaration checks require physical package examination.',
+      }
+    case 'COMPLIANT':
+    case 'VERIFIED':
+    default:
+      return {
+        tone: 'success',
+        label: 'STATUTORILY COMPLIANT',
+        bannerClass: 'reports-verdict-banner--compliant',
+        bannerTitle: 'STATUTORILY COMPLIANT',
+        bannerSubtitle: 'All mandatory Legal Metrology Rule 6 packaging declarations passed inspection.',
+      }
+  }
+}
 
-  return (
-    <div className="m5-report-preview">
-      <div className="m5-kv">
-        <div className="m5-kv__item">
-          <span className="m5-kv__label">Report ID</span>
-          <span className="m5-kv__value">{report.reportId}</span>
-        </div>
-        <div className="m5-kv__item">
-          <span className="m5-kv__label">Product</span>
-          <span className="m5-kv__value">{report.productName}</span>
-        </div>
-        <div className="m5-kv__item">
-          <span className="m5-kv__label">Category</span>
-          <span className="m5-kv__value">{report.category}</span>
-        </div>
-        <div className="m5-kv__item">
-          <span className="m5-kv__label">Scan Date</span>
-          <span className="m5-kv__value">{report.scanDate}</span>
-        </div>
-        <div className="m5-kv__item">
-          <span className="m5-kv__label">Compliance Score</span>
-          <span className="m5-kv__value">{report.complianceScore}%</span>
-        </div>
-        <div className="m5-kv__item">
-          <span className="m5-kv__label">Status</span>
-          <span className="m5-kv__value">
-            <StatusBadge status={report.status} />
-          </span>
-        </div>
-      </div>
-
-      <h3 className="m5-section-title">Summary Counts</h3>
-      <div className="m5-kv">
-        {countsList.map((item) => (
-          <div key={item.label} className="m5-kv__item">
-            <span className="m5-kv__label">{item.label}</span>
-            <span className="m5-kv__value">{item.value}</span>
-          </div>
-        ))}
-      </div>
-
-      <h3 className="m5-section-title">Statutory Verdict</h3>
-      <p className="m5-detail-note">
-        {verdict.overallStatus || '—'} ·{' '}
-        {report.isCompliant
-          ? 'Compliant with applicable declarations'
-          : `Action required: ${report.actionRequired || 'OFFICER_REVIEW'}`}
-      </p>
-
-      <h3 className="m5-section-title">Violations</h3>
-      {report.violations.length ? (
-        <ul className="m5-list">
-          {report.violations.map((violation, index) => (
-            <li key={index}>
-              <strong>{violation.rule}</strong>
-              {violation.statutoryClause ? ` [${violation.statutoryClause}]` : ''} —{' '}
-              {violation.legalGrounds || 'No legal grounds recorded'}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <ul className="m5-list">
-          <li>No violations detected.</li>
-        </ul>
-      )}
-    </div>
-  )
+function getDeclarationBadge(status) {
+  switch (status) {
+    case 'VERIFIED':
+    case 'COMPLIANT':
+      return <StatusBadge tone="success" label="Pass" />
+    case 'WARNING':
+    case 'VERIFICATION_REQUIRED':
+    case 'PENDING':
+      return <StatusBadge tone="warning" label="Pending" />
+    case 'POTENTIAL_NON_COMPLIANCE':
+    case 'NON_COMPLIANT':
+    case 'REJECTED':
+      return <StatusBadge tone="danger" label="Fail" />
+    default:
+      return <StatusBadge tone="neutral" label={status} />
+  }
 }
 
 export default function Reports() {
-  const [, setVersionState] = useState(() => getVersion())
-  const [selectedReport, setSelectedReport] = useState(null)
-  const [previewOpen, setPreviewOpen] = useState(false)
-  const [downloading, setDownloading] = useState('')
+  const location = useLocation()
+  const navigate = useNavigate()
 
-  useEffect(() => subscribe(() => setVersionState(getVersion())), [])
+  const [reportData] = useState(() => resolveReportData(location.state))
+  const [showNoticeModal, setShowNoticeModal] = useState(false)
 
-  const reports = getReportList()
+  const inspectionId = reportData.inspectionId || reportData.id || 'INS-N/A'
+  const inspectionDate = reportData.inspectionDate || reportData.timestamp
+  const officerName = reportData.officerName || 'Inspection Officer (Legal Metrology)'
+  const commodityName = reportData.commodity?.productName || reportData.commodity?.name || 'Inspected Commodity'
+  const barcode = reportData.commodity?.barcode || 'N/A'
+  const category = reportData.commodity?.category || 'General Commodity'
+  const manufacturer = reportData.commodity?.manufacturer || 'N/A'
+  const mrp = reportData.commodity?.mrp || 'N/A'
+  const netQuantity = reportData.commodity?.netQuantity || 'N/A'
 
-  const handleDownload = (record) => {
-    const report = buildReport(record)
-    if (!report) return
-    setDownloading(record.id)
-    window.setTimeout(() => {
-      generateInspectionPdf(report)
-      setDownloading('')
-    }, 50)
+  const overallVerdict =
+    reportData.summary?.overallVerdict ||
+    reportData.results?.verdict ||
+    'COMPLIANT'
+
+  const verdictInfo = getVerdictProps(overallVerdict)
+
+  const verifiedCount = reportData.summary?.verifiedCount ?? reportData.results?.verifiedCount ?? 0
+  const verificationRequiredCount = reportData.summary?.verificationRequiredCount ?? reportData.results?.verificationRequiredCount ?? 0
+  const warningCount = reportData.summary?.warningCount ?? reportData.results?.warningCount ?? 0
+  const nonComplianceCount = reportData.summary?.nonComplianceCount ?? reportData.results?.nonComplianceCount ?? 0
+  const totalRules = reportData.summary?.totalRules ?? reportData.results?.totalRules ?? 7
+
+  const rulesList = reportData.rules || reportData.declarations || []
+
+  const handlePrint = () => {
+    window.print()
   }
 
-  const handleOpenPdf = (record) => {
-    const report = buildReport(record)
-    if (!report) return
-    const dataUri = generateInspectionPdf(report, { onDownload: false })
-    openPdfInNewTab(dataUri)
+  const handleOpenNotice = () => {
+    setShowNoticeModal(true)
   }
 
-  const handlePreview = (record) => {
-    const report = buildReport(record)
-    setSelectedReport(report)
-    setPreviewOpen(true)
+  const handleScanAnother = () => {
+    navigate(ROUTES.SCAN || '/scan')
   }
 
-  const columns = [
-    {
-      key: 'id',
-      header: 'Report ID',
-      render: (row) => <span className="m5-report-id">{row.id}</span>,
-    },
-    { key: 'productName', header: 'Product' },
-    { key: 'category', header: 'Category' },
-    { key: 'scanDateTime', header: 'Scanned' },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <StatusBadge status={row.status} />,
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      align: 'right',
-      render: (row) => (
-        <div className="m5-row-actions">
-          <Button
-            variant="outline"
-            size="sm"
-            icon="eye"
-            onClick={() => handlePreview(row)}
-          >
-            Preview
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon="download"
-            loading={downloading === row.id}
-            disabled={Boolean(downloading)}
-            onClick={() => handleDownload(row)}
-          >
-            Download
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            icon="printer"
-            onClick={() => handleOpenPdf(row)}
-          >
-            Print
-          </Button>
-        </div>
-      ),
-    },
-  ]
+  const formattedDate = inspectionDate
+    ? new Date(inspectionDate).toLocaleString('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : new Date().toLocaleString()
+
+  const isNonCompliant =
+    overallVerdict === 'NON_COMPLIANT' ||
+    nonComplianceCount > 0
 
   return (
-    <div className="m5-page">
-      <PageHeader
-        overline="PCLMCS · Officer Workspace"
-        title="PDF Compliance Reports"
-        description="Generate and download official compliance inspection reports in PDF format."
-      />
-
-      <Card
-        title="Inspection Reports"
-        subtitle="Reports available for download"
-      >
-        <Table
-          columns={columns}
-          rows={reports}
-          emptyMessage="No compliance inspections are available for reporting yet. Run and save a scan from the Compliance module first."
-          caption="All inspections saved to the compliance system"
+    <div className="reports-container">
+      <div className="no-print">
+        <Breadcrumb
+          items={[
+            { to: ROUTES.DASHBOARD, label: 'Dashboard' },
+            { to: ROUTES.COMPLIANCE, label: 'Compliance' },
+            { label: 'Inspection Report' },
+          ]}
         />
+      </div>
+
+      <div className="reports-header">
+        <PageHeader
+          overline="Government of India · Department of Consumer Affairs · Legal Metrology Wing"
+          title={`Official Product Inspection Verification Report: ${inspectionId}`}
+          subtitle={`Generated on ${formattedDate} | Legal Metrology Enforcement Portal`}
+        />
+
+        <div className="reports-header__actions no-print">
+          <Button variant="outline" icon="upload" onClick={handleScanAnother}>
+            New Inspection
+          </Button>
+          <Button variant="secondary" icon="printer" onClick={handlePrint}>
+            Print / Download PDF Certificate
+          </Button>
+          {isNonCompliant && (
+            <Button variant="danger" icon="alertTriangle" onClick={handleOpenNotice}>
+              Issue Statutory Notice under Sec. 36(1)
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Official Verdict Banner */}
+      <div className={`reports-verdict-banner ${verdictInfo.bannerClass}`}>
+        <div>
+          <h2 className="reports-verdict-banner__title">{verdictInfo.bannerTitle}</h2>
+          <p className="reports-verdict-banner__subtitle">{verdictInfo.bannerSubtitle}</p>
+        </div>
+        <StatusBadge tone={verdictInfo.tone} label={verdictInfo.label} />
+      </div>
+
+      {/* Grid: Commodity Details & Key Summary Metrics */}
+      <div className="reports-grid">
+        <Card title="Commodity & Inspection Metadata">
+          <div className="reports-details-list">
+            <div className="reports-details-item">
+              <span className="reports-details-item__label">Inspection ID</span>
+              <span className="reports-details-item__value">{inspectionId}</span>
+            </div>
+            <div className="reports-details-item">
+              <span className="reports-details-item__label">Inspection Date</span>
+              <span className="reports-details-item__value">{formattedDate}</span>
+            </div>
+            <div className="reports-details-item">
+              <span className="reports-details-item__label">Enforcement Officer</span>
+              <span className="reports-details-item__value">{officerName}</span>
+            </div>
+            <div className="reports-details-item">
+              <span className="reports-details-item__label">Commodity Name</span>
+              <span className="reports-details-item__value">{commodityName}</span>
+            </div>
+            <div className="reports-details-item">
+              <span className="reports-details-item__label">Barcode / GTIN</span>
+              <span className="reports-details-item__value">{barcode}</span>
+            </div>
+            <div className="reports-details-item">
+              <span className="reports-details-item__label">Statutory Category</span>
+              <span className="reports-details-item__value">{category}</span>
+            </div>
+            <div className="reports-details-item">
+              <span className="reports-details-item__label">Manufacturer / Packer</span>
+              <span className="reports-details-item__value">{manufacturer}</span>
+            </div>
+            <div className="reports-details-item">
+              <span className="reports-details-item__label">Declared Net Quantity</span>
+              <span className="reports-details-item__value">{netQuantity}</span>
+            </div>
+            <div className="reports-details-item">
+              <span className="reports-details-item__label">Maximum Retail Price</span>
+              <span className="reports-details-item__value">{mrp}</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Statutory Inspection Audit Score">
+          <div className="reports-metrics">
+            <div className="reports-metric-card">
+              <div className="reports-metric-card__value" style={{ color: '#0f172a' }}>
+                {totalRules}
+              </div>
+              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Total Rules Evaluated</span>
+            </div>
+            <div className="reports-metric-card">
+              <div className="reports-metric-card__value" style={{ color: '#16a34a' }}>
+                {verifiedCount}
+              </div>
+              <span style={{ fontSize: '0.8rem', color: '#16a34a' }}>Passed / Verified</span>
+            </div>
+            <div className="reports-metric-card">
+              <div className="reports-metric-card__value" style={{ color: '#eab308' }}>
+                {verificationRequiredCount}
+              </div>
+              <span style={{ fontSize: '0.8rem', color: '#854d0e' }}>Verification Required</span>
+            </div>
+            <div className="reports-metric-card">
+              <div className="reports-metric-card__value" style={{ color: '#f97316' }}>
+                {warningCount}
+              </div>
+              <span style={{ fontSize: '0.8rem', color: '#c2410c' }}>Warnings</span>
+            </div>
+            <div className="reports-metric-card">
+              <div className="reports-metric-card__value" style={{ color: '#dc2626' }}>
+                {nonComplianceCount}
+              </div>
+              <span style={{ fontSize: '0.8rem', color: '#dc2626' }}>Non-Compliant / Fail</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Rule 6 Declaration Checklist */}
+      <Card title="Legal Metrology Rule 6 Statutory Declaration Checklist">
+        <div className="reports-checklist">
+          {rulesList.map((dec, idx) => (
+            <div key={dec.ruleId || idx} className="reports-checklist-item">
+              <div className="reports-checklist-item__main">
+                <h3 className="reports-checklist-item__title">{dec.ruleName}</h3>
+                <div className="reports-checklist-item__ref">{dec.legalReference}</div>
+                {dec.statutoryDirective && (
+                  <div className="reports-checklist-item__ref" style={{ color: '#475569', fontStyle: 'italic' }}>
+                    Mandate: {dec.statutoryDirective}
+                  </div>
+                )}
+                <div className="reports-checklist-item__msg">{dec.message}</div>
+                {dec.extractedValue && (
+                  <div className="reports-checklist-item__value">
+                    <strong>Captured Label Text: </strong>
+                    <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
+                      {dec.extractedValue}
+                    </code>
+                  </div>
+                )}
+                {dec.officerNote && (
+                  <div className="reports-checklist-item__value" style={{ color: '#1e40af' }}>
+                    <strong>Officer Note / Justification: </strong>{dec.officerNote}
+                  </div>
+                )}
+              </div>
+              <div>{getDeclarationBadge(dec.status)}</div>
+            </div>
+          ))}
+        </div>
+
+        {reportData.officerNotes && (
+          <div className="reports-officer-notes">
+            <h4 className="reports-officer-notes__title">Enforcement Officer Remarks</h4>
+            <p style={{ margin: 0, fontSize: '0.9rem' }}>{reportData.officerNotes}</p>
+          </div>
+        )}
       </Card>
 
-      <Modal
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        title="Report Preview"
-        size="lg"
-        footer={
-          <div className="m5-detail-actions">
-            <Button variant="outline" onClick={() => setPreviewOpen(false)}>
-              Close
-            </Button>
-          </div>
-        }
-      >
-        {selectedReport ? (
-          <>
-            <PreviewBody report={selectedReport} />
-            <div className="m5-detail-actions">
-              <Button
-                variant="primary"
-                icon="download"
-                onClick={() => {
-                  generateInspectionPdf(selectedReport)
-                  setPreviewOpen(false)
-                }}
-              >
-                Download PDF
-              </Button>
-              <Button
-                variant="outline"
-                icon="printer"
-                onClick={() => openPdfInNewTab(generateInspectionPdf(selectedReport, { onDownload: false }))}
-              >
-                Print
-              </Button>
-            </div>
-          </>
-        ) : (
-          <p className="m5-hint">No report selected.</p>
-        )}
-      </Modal>
+      {showNoticeModal && (
+        <NoticeGenerator
+          report={reportData}
+          isModal
+          onClose={() => setShowNoticeModal(false)}
+        />
+      )}
     </div>
   )
 }

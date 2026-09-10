@@ -52,6 +52,7 @@ export const ROUTES = {
   INSPECTION: '/inspection',
   COMPANY: '/company',
   REPORTS: '/reports',
+  NOTICES: '/notices',
   ADMIN: '/admin',
   SCAN_HISTORY: '/admin/history',
   QR_VERIFICATION: '/admin/qr-verification',

@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { classNames } from '../../../utils/classNames'
 import { formatFileSize, IMAGE_LABELS, UPLOAD_ACCEPT_ATTR } from '../../../utils/fileValidation'
 import Icon from '../../ui/Icon/Icon'
@@ -12,6 +12,7 @@ import './ImagePreviewCard.css'
  */
 export default function ImagePreviewCard({ image, onRemove, onLabelChange, onReplace, className = '' }) {
   const replaceInputRef = useRef(null)
+  const [imgError, setImgError] = useState(false)
 
   const openReplacePicker = () => replaceInputRef.current?.click()
 
@@ -24,13 +25,21 @@ export default function ImagePreviewCard({ image, onRemove, onLabelChange, onRep
   const labelText =
     IMAGE_LABELS.find((option) => option.value === image.label)?.label ?? image.label
 
+  const imageSrc = image?.previewUrl || image?.preview || image?.url
+  const fileName = image?.file?.name || 'Image'
+  const fileSize = image?.file?.size ? formatFileSize(image.file.size) : null
+
   return (
     <article className={classNames('preview-card', className)}>
       <div className="preview-card__thumb">
-        {image.previewUrl ? (
-          <img src={image.previewUrl} alt={`Preview of ${image.file.name}`} />
+        {imageSrc && !imgError ? (
+          <img
+            src={imageSrc}
+            alt={`Preview of ${fileName}`}
+            onError={() => setImgError(true)}
+          />
         ) : (
-          <span className="preview-card__thumb-placeholder">
+          <span className="preview-card__thumb-placeholder" title="Image preview unavailable">
             <Icon name="image" size={28} />
           </span>
         )}
@@ -38,11 +47,11 @@ export default function ImagePreviewCard({ image, onRemove, onLabelChange, onRep
 
       <div className="preview-card__body">
         <div className="preview-card__file">
-          <p className="preview-card__name" title={image.file.name}>
-            {image.file.name}
+          <p className="preview-card__name" title={fileName}>
+            {fileName}
           </p>
           <div className="preview-card__file-meta">
-            <span className="preview-card__size">{formatFileSize(image.file.size)}</span>
+            {fileSize && <span className="preview-card__size">{fileSize}</span>}
             <span className="preview-card__type-badge">{labelText}</span>
           </div>
         </div>
@@ -67,7 +76,7 @@ export default function ImagePreviewCard({ image, onRemove, onLabelChange, onRep
             type="button"
             className="preview-card__btn preview-card__btn--replace"
             onClick={openReplacePicker}
-            aria-label={`Replace ${image.file.name} with another image`}
+            aria-label={`Replace ${fileName} with another image`}
           >
             <Icon name="upload" size={16} />
             <span>Replace Image</span>
@@ -76,7 +85,7 @@ export default function ImagePreviewCard({ image, onRemove, onLabelChange, onRep
             type="button"
             className="preview-card__btn preview-card__btn--remove"
             onClick={() => onRemove(image.id)}
-            aria-label={`Remove ${image.file.name}`}
+            aria-label={`Remove ${fileName}`}
           >
             <Icon name="trash" size={16} />
             <span>Remove Image</span>

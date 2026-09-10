@@ -4,10 +4,22 @@ import * as Evaluators from '../evaluators/declarationEvaluators.js';
 import { COMPLIANCE_STATUS, ACTION_PRIORITY } from '../rules/generalRules.js';
 import { adaptScanResult } from '../adapter/scanAdapter.js';
 
-export function runComplianceAudit(rawScanPayload) {
-  const normalizedPayload = adaptScanResult(rawScanPayload);
-  const { inspectionId, product = {}, scanMetadata = {}, declarations = {} } = normalizedPayload;
-  const applicableRules = selectApplicableRules(product.category);
+export function evaluateDeclarations(declarations, category = 'General', scanMetadata = {}, inspectionId = null, productName = null) {
+  let decls = declarations;
+  let cat = category;
+  let meta = scanMetadata;
+  let id = inspectionId;
+  let name = productName;
+
+  if (declarations && typeof declarations === 'object' && declarations.declarations) {
+    decls = declarations.declarations;
+    if (declarations.product?.category) cat = category !== 'General' ? category : declarations.product.category;
+    if (declarations.scanMetadata) meta = declarations.scanMetadata;
+    if (declarations.inspectionId) id = declarations.inspectionId;
+    if (declarations.product?.name) name = declarations.product.name;
+  }
+
+  const applicableRules = selectApplicableRules(cat);
 
   const findings = [];
   const summary = {
@@ -18,14 +30,14 @@ export function runComplianceAudit(rawScanPayload) {
   };
 
   applicableRules.forEach((rule) => {
-    const fieldData = declarations[rule.field];
+    const fieldData = decls ? decls[rule.field] : undefined;
     const evaluatorFn = Evaluators[rule.evaluator];
 
     let result;
     if (typeof evaluatorFn === 'function') {
       result = rule.field === 'unitSalePrice'
-        ? evaluatorFn(declarations, scanMetadata)
-        : evaluatorFn(fieldData, scanMetadata);
+        ? evaluatorFn(decls, meta)
+        : evaluatorFn(fieldData, meta);
     } else {
       result = {
         status: COMPLIANCE_STATUS.VERIFICATION_REQUIRED,
@@ -70,14 +82,19 @@ export function runComplianceAudit(rawScanPayload) {
   }
 
   return {
-    inspectionId: inspectionId || `INS-${Date.now()}`,
-    productName: product.name || 'Unknown Packaged Commodity',
-    category: product.category || 'General',
+    inspectionId: id || `INS-${Date.now()}`,
+    productName: name || 'Unknown Packaged Commodity',
+    category: cat || 'General',
     overallStatus,
     nextAction,
     summary,
     findings
   };
+}
+
+export function runComplianceAudit(rawScanPayload) {
+  const normalizedPayload = adaptScanResult(rawScanPayload);
+  return evaluateDeclarations(normalizedPayload);
 }
 
 export { generateInspectionSummary } from '../export/inspectionExporter.js';

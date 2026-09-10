@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import EmptyState from '../../components/feedback/EmptyState/EmptyState'
 import FileValidationMessage from '../../components/upload/FileValidationMessage/FileValidationMessage'
 import Alert from '../../components/feedback/Alert/Alert'
@@ -114,6 +115,7 @@ function extractProductFields(product) {
 }
 
 export default function ScanProduct() {
+  const navigate = useNavigate()
   const pickerRef = useRef(null)
   const previewUrlsRef = useRef([])
 
@@ -231,10 +233,11 @@ export default function ScanProduct() {
       const previewUrl = URL.createObjectURL(file)
       previewUrlsRef.current.push(previewUrl)
       accepted.push({
-        id: `${file.name}-${file.lastModified}-${Date.now()}-${Math.round(Math.random() * 1e6)}`,
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${file.name}-${file.lastModified}-${Date.now()}-${Math.round(Math.random() * 1e6)}`,
         file,
+        preview: previewUrl,
         previewUrl,
-        label: IMAGE_LABELS[0].value,
+        label: IMAGE_LABELS[0]?.value || 'Front Panel',
       })
     })
 
@@ -248,6 +251,7 @@ export default function ScanProduct() {
   }
 
   const releasePreviewUrl = useCallback((previewUrl) => {
+    if (!previewUrl) return
     URL.revokeObjectURL(previewUrl)
     previewUrlsRef.current = previewUrlsRef.current.filter((url) => url !== previewUrl)
   }, [])
@@ -255,7 +259,10 @@ export default function ScanProduct() {
   const handleRemoveImage = (id) => {
     setImages((previous) => {
       const target = previous.find((image) => image.id === id)
-      if (target?.previewUrl) releasePreviewUrl(target.previewUrl)
+      if (target) {
+        if (target.previewUrl) releasePreviewUrl(target.previewUrl)
+        if (target.preview && target.preview !== target.previewUrl) releasePreviewUrl(target.preview)
+      }
       return previous.filter((image) => image.id !== id)
     })
     setContinueNotice(false)
@@ -275,8 +282,9 @@ export default function ScanProduct() {
     setImages((previous) =>
       previous.map((image) => {
         if (image.id !== id) return image
-        releasePreviewUrl(image.previewUrl)
-        return { ...image, file, previewUrl: newPreviewUrl }
+        if (image.previewUrl) releasePreviewUrl(image.previewUrl)
+        if (image.preview && image.preview !== image.previewUrl) releasePreviewUrl(image.preview)
+        return { ...image, file, preview: newPreviewUrl, previewUrl: newPreviewUrl }
       }),
     )
   }
@@ -289,6 +297,45 @@ export default function ScanProduct() {
 
   const handleContinue = () => {
     setContinueNotice(true)
+
+    const rawProduct =
+      productLookup?.product ||
+      productLookup?.data?.product ||
+      productLookup?.data ||
+      (registrationStatus.status === 'success' || registrationImage ? registrationForm : null) ||
+      {}
+
+    const compliancePayload = {
+      metadata: {
+        barcode: productCode?.code || productCode?.value || rawProduct?.barcode || rawProduct?.code || 'MANUAL-SCAN',
+        productName: rawProduct?.product_name || rawProduct?.productName || rawProduct?.name || 'Scanned Commodity',
+        category: rawProduct?.category || 'General',
+        scannedAt: new Date().toISOString(),
+      },
+      extractedFields: {
+        mrp: rawProduct?.mrp || rawProduct?.price,
+        netQuantity: rawProduct?.net_quantity || rawProduct?.netQuantity || rawProduct?.quantity,
+        unitSalePrice: rawProduct?.usp || rawProduct?.unit_sale_price || rawProduct?.unitSalePrice,
+        manufacturerName: rawProduct?.manufacturer || rawProduct?.manufacturerName || rawProduct?.brand,
+        countryOfOrigin: rawProduct?.country_of_origin || rawProduct?.countryOfOrigin || rawProduct?.origin || 'India',
+        consumerCareDetails: rawProduct?.consumer_care || rawProduct?.consumerCareDetails || rawProduct?.customer_care,
+        manufacturingDate: rawProduct?.mfg_date || rawProduct?.manufacturing_date || rawProduct?.manufacturingDate,
+      },
+      images: images.map((img) => ({
+        id: img.id,
+        label: img.label,
+        url: img.preview || img.previewUrl,
+      })),
+    }
+
+    try {
+      sessionStorage.setItem('pclmcs.latest_scan', JSON.stringify(compliancePayload))
+    } catch (err) {
+      console.error('Failed to save scan payload to sessionStorage:', err)
+    }
+
+    const targetRoute = ROUTES.COMPLIANCE || '/compliance'
+    navigate(targetRoute, { state: { scanData: compliancePayload } })
   }
 
   const handleRegistrationFormChange = (field, value) => {

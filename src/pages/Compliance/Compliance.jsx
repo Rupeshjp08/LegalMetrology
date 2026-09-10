@@ -1,34 +1,20 @@
 // src/pages/Compliance/Compliance.jsx
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Card from '../../components/ui/Card/Card'
 import StatusBadge from '../../components/ui/StatusBadge/StatusBadge'
 import Button from '../../components/ui/Button/Button'
 import PageHeader from '../../components/ui/PageHeader/PageHeader'
+import Breadcrumb from '../../components/layout/Breadcrumb/Breadcrumb'
+import EmptyState from '../../components/feedback/EmptyState/EmptyState'
+import Alert from '../../components/feedback/Alert/Alert'
 import { ROUTES } from '../../constants'
-import { runComplianceAudit, generateInspectionSummary, COMPLIANCE_STATUS } from '../../modules/compliance'
-
-const MOCK_INSPECTION_DATA = {
-  inspectionId: 'INS-2026-0042',
-  product: {
-    name: 'Standard Packaged Biscuits 250g',
-    category: 'Food',
-  },
-  scanMetadata: {
-    imageQuality: 'high',
-    allSidesCaptured: true,
-  },
-  declarations: {
-    mrp: { detected: true, rawText: 'MRP ₹40.00 (inclusive of all taxes)', clarity: 'clear' },
-    netQuantity: { detected: true, rawText: '250 g', clarity: 'clear' },
-    manufacturerDetails: { detected: true, rawText: 'Sunrise Bakeries Ltd, Plot 42, Peenya, Bengaluru', clarity: 'clear' },
-    consumerCare: { detected: false, rawText: null, clarity: 'blurry' },
-    countryOfOrigin: { detected: true, rawText: 'India', clarity: 'clear' },
-    dateOfPackaging: { detected: true, rawText: '08/2026', clarity: 'clear' },
-    fssaiLicense: { detected: true, rawText: '10012011000234', clarity: 'clear' },
-    expiryDate: { detected: true, rawText: 'Best Before 6 months from packaging', clarity: 'clear' },
-  },
-}
+import {
+  adaptScanToCompliance,
+  evaluateDeclarations,
+  generateInspectionSummary,
+  COMPLIANCE_STATUS
+} from '../../modules/compliance'
 
 function resolveScanInputData(locationState) {
   if (locationState?.scanData) {
@@ -42,50 +28,173 @@ function resolveScanInputData(locationState) {
   } catch (err) {
     console.warn('Could not parse sessionStorage scan data:', err)
   }
-  return MOCK_INSPECTION_DATA
+  return null
 }
 
 export default function Compliance() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const [activeScanData, setActiveScanData] = useState(() => resolveScanInputData(location.state))
-  const [auditResult, setAuditResult] = useState(() => runComplianceAudit(activeScanData))
-  const [selectedCategory, setSelectedCategory] = useState(() => auditResult.category || 'Food')
+  const rawScanData = location.state?.scanData || resolveScanInputData(location.state)
+
+  const [activeScanData, setActiveScanData] = useState(rawScanData)
+  const [selectedCategory, setSelectedCategory] = useState(() => rawScanData?.metadata?.category || 'Food')
+
+  const [auditResult, setAuditResult] = useState(() => {
+    if (!rawScanData) return null
+    const adapted = adaptScanToCompliance(rawScanData)
+    const categoryToUse = rawScanData.metadata?.category || adapted.product?.category || 'Food'
+    return evaluateDeclarations(
+      adapted.declarations,
+      categoryToUse,
+      adapted.scanMetadata,
+      adapted.inspectionId,
+      rawScanData.metadata?.productName || adapted.product?.name
+    )
+  })
+
   const [activePanelFinding, setActivePanelFinding] = useState(null)
   const [officerDecisionNotes, setOfficerDecisionNotes] = useState('')
 
+  useEffect(() => {
+    const freshScanData = location.state?.scanData || resolveScanInputData(location.state)
+    if (freshScanData) {
+      setActiveScanData(freshScanData)
+      const adapted = adaptScanToCompliance(freshScanData)
+      const categoryToUse = freshScanData.metadata?.category || adapted.product?.category || selectedCategory || 'Food'
+      setSelectedCategory(categoryToUse)
+      const evaluated = evaluateDeclarations(
+        adapted.declarations,
+        categoryToUse,
+        adapted.scanMetadata,
+        adapted.inspectionId,
+        freshScanData.metadata?.productName || adapted.product?.name
+      )
+      setAuditResult(evaluated)
+    }
+  }, [location.state])
+
   const handleCategorySwitch = (newCategory) => {
     setSelectedCategory(newCategory)
+    if (!activeScanData) return
     const updatedInput = {
       ...activeScanData,
+      metadata: {
+        ...(activeScanData.metadata || {}),
+        category: newCategory,
+      },
       product: {
         ...(activeScanData.product || {}),
         category: newCategory,
       },
+      category: newCategory,
     }
     setActiveScanData(updatedInput)
-    setAuditResult(runComplianceAudit(updatedInput))
+    const adapted = adaptScanToCompliance(updatedInput)
+    const evaluated = evaluateDeclarations(
+      adapted.declarations,
+      newCategory,
+      adapted.scanMetadata,
+      adapted.inspectionId,
+      updatedInput.metadata?.productName || adapted.product?.name
+    )
+    setAuditResult(evaluated)
   }
 
   const handleSaveInspection = () => {
+    if (!auditResult) return
     const exportSummary = generateInspectionSummary(auditResult)
-    try {
-      const existing = JSON.parse(localStorage.getItem('pclmcs.inspections') || '[]')
-      const updated = [
-        exportSummary,
-        ...existing.filter(
-          (item) => item.inspectionMetadata?.inspectionId !== exportSummary.inspectionMetadata?.inspectionId
-        ),
-      ]
-      localStorage.setItem('pclmcs.inspections', JSON.stringify(updated))
-    } catch (err) {
-      console.error('Failed to save inspection to localStorage:', err)
+
+    const verifiedCount = auditResult.summary?.verified || 0
+    const verificationRequiredCount = auditResult.summary?.verificationRequired || 0
+    const warningCount = auditResult.summary?.warnings || 0
+    const nonComplianceCount = auditResult.summary?.potentialNonCompliance || 0
+    const totalRules = auditResult.findings?.length || 7
+
+    const overallVerdict =
+      nonComplianceCount > 0
+        ? 'NON_COMPLIANT'
+        : verificationRequiredCount > 0
+        ? 'PENDING_VERIFICATION'
+        : 'COMPLIANT'
+
+    const statutoryCitation =
+      nonComplianceCount > 0
+        ? 'Liable for action under Section 36(1) of Legal Metrology Act, 2009'
+        : 'Compliant with Rule 6 of PCR 2011'
+
+    const evaluationResults = (auditResult.findings || []).map((finding) => ({
+      ruleId: finding.ruleId,
+      ruleName: finding.ruleName,
+      field: finding.field,
+      legalReference: finding.legalReference,
+      penalSection: finding.penalSection,
+      statutoryDirective: finding.statutoryDirective,
+      status: finding.status,
+      priority: finding.priority,
+      message: finding.message,
+      extractedValue: finding.extractedValue || null,
+      officerNote: finding.officerNote || null,
+      officerOverride: Boolean(finding.officerOverride),
+    }))
+
+    const inspectionRecord = {
+      inspectionId: auditResult.inspectionId || `INS-${Date.now().toString().slice(-6)}`,
+      inspectionDate: new Date().toISOString(),
+      officerName: 'Inspection Officer (Legal Metrology)',
+      commodity: {
+        barcode: activeScanData?.metadata?.barcode || activeScanData?.barcode || 'N/A',
+        productName: activeScanData?.metadata?.productName || activeScanData?.productName || auditResult.productName || 'Inspected Commodity',
+        name: activeScanData?.metadata?.productName || activeScanData?.productName || auditResult.productName || 'Inspected Commodity',
+        category: selectedCategory || activeScanData?.metadata?.category || 'General Commodity',
+        extractedFields: activeScanData?.extractedFields || {},
+        mrp: activeScanData?.extractedFields?.mrp || activeScanData?.mrp || 'N/A',
+        netQuantity: activeScanData?.extractedFields?.netQuantity || activeScanData?.netQuantity || 'N/A',
+        manufacturer: activeScanData?.extractedFields?.manufacturerName || activeScanData?.manufacturer || 'N/A',
+      },
+      summary: {
+        totalRules,
+        verifiedCount,
+        verificationRequiredCount,
+        warningCount,
+        nonComplianceCount,
+        overallVerdict,
+        statutoryCitation,
+      },
+      rules: evaluationResults,
+      // Backwards compatibility properties
+      id: auditResult.inspectionId || `INS-${Date.now().toString().slice(-6)}`,
+      timestamp: new Date().toISOString(),
+      results: {
+        totalRules,
+        verifiedCount,
+        verificationRequiredCount,
+        warningCount,
+        nonComplianceCount,
+        verdict: overallVerdict,
+      },
+      declarations: evaluationResults,
+      officerNotes: officerDecisionNotes || '',
+      exportSummary,
     }
 
-    const targetRoute = ROUTES.REPORTS || ROUTES.INSPECTION || '/reports'
+    try {
+      sessionStorage.setItem('pclmcs.latest_report', JSON.stringify(inspectionRecord))
+      const history = JSON.parse(localStorage.getItem('pclmcs.inspections_history') || '[]')
+      const updatedHistory = [
+        inspectionRecord,
+        ...history.filter((item) => item.inspectionId !== inspectionRecord.inspectionId && item.id !== inspectionRecord.id),
+      ]
+      localStorage.setItem('pclmcs.inspections_history', JSON.stringify(updatedHistory))
+      localStorage.setItem('pclmcs.inspections', JSON.stringify(updatedHistory))
+    } catch (err) {
+      console.error('Failed to save inspection report to storage:', err)
+    }
+
+    const targetRoute = ROUTES.REPORTS || '/reports'
     navigate(targetRoute, {
       state: {
+        report: inspectionRecord,
         inspectionId: auditResult.inspectionId,
         handoffPayload: exportSummary,
       },
@@ -93,6 +202,7 @@ export default function Compliance() {
   }
 
   const handleExportHandoff = () => {
+    if (!auditResult) return
     const summary = generateInspectionSummary(auditResult)
     console.log('[Member 3 Handoff Payload for Member 4 & 5]:', summary)
     if (summary.violations.length > 0) {
@@ -110,13 +220,16 @@ export default function Compliance() {
   const getBadgeProps = (status) => {
     switch (status) {
       case COMPLIANCE_STATUS.VERIFIED:
-        return { tone: 'success', label: 'Verified' }
+      case 'COMPLIANT':
+        return { tone: 'success', label: 'Verified Compliant' }
       case COMPLIANCE_STATUS.WARNING:
         return { tone: 'warning', label: 'Warning' }
       case COMPLIANCE_STATUS.VERIFICATION_REQUIRED:
+      case 'PENDING':
         return { tone: 'warning', label: 'Verification Required' }
       case COMPLIANCE_STATUS.POTENTIAL_NON_COMPLIANCE:
-        return { tone: 'danger', label: 'Potential Non-Compliance' }
+      case 'NON_COMPLIANT':
+        return { tone: 'danger', label: 'Non-Compliance' }
       default:
         return { tone: 'neutral', label: status }
     }
@@ -124,6 +237,7 @@ export default function Compliance() {
 
   const handleOfficerOverride = (ruleId, newStatus) => {
     setAuditResult((prev) => {
+      if (!prev) return prev
       const updatedFindings = prev.findings.map((f) => {
         if (f.ruleId === ruleId) {
           return {
@@ -160,14 +274,78 @@ export default function Compliance() {
     setOfficerDecisionNotes('')
   }
 
+  if (!activeScanData || !auditResult) {
+    return (
+      <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
+        <Breadcrumb
+          items={[
+            { to: ROUTES.DASHBOARD, label: 'Dashboard' },
+            { label: 'Compliance Inspection' },
+          ]}
+        />
+        <PageHeader
+          overline="Legal Metrology · Compliance Intelligence"
+          title="Statutory Product Inspection"
+          description="Inspect commodity package declarations against Legal Metrology Rules."
+        />
+
+        <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+          <Alert tone="warning" title="No active scan found. You are in manual commodity entry mode.">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginTop: '0.5rem' }}>
+              <span>Please scan or upload a packaged commodity to ingest package declarations for statutory inspection.</span>
+              <Button variant="primary" icon="camera" onClick={() => navigate(ROUTES.SCAN || '/scan')}>
+                Open Scanner
+              </Button>
+            </div>
+          </Alert>
+        </div>
+
+        <Card style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
+          <EmptyState
+            icon="barcode"
+            title="No commodity scanned."
+            description="No active product scan data found. Please scan or upload a packaged commodity to begin compliance inspection."
+            action={
+              <Button variant="primary" icon="camera" onClick={() => navigate(ROUTES.SCAN || '/scan')}>
+                No commodity scanned. Click here to scan a package
+              </Button>
+            }
+          />
+        </Card>
+      </div>
+    )
+  }
+
+  const productName =
+    activeScanData.metadata?.productName || activeScanData.productName || auditResult.productName || 'Scanned Commodity'
+  const barcode = activeScanData.metadata?.barcode || activeScanData.barcode || 'N/A'
+  const declaredMrp = activeScanData.extractedFields?.mrp || activeScanData.mrp || 'N/A'
+  const declaredNetQty = activeScanData.extractedFields?.netQuantity || activeScanData.netQuantity || 'N/A'
+  const declaredUsp =
+    activeScanData.extractedFields?.unitSalePrice ||
+    activeScanData.extractedFields?.usp ||
+    activeScanData.unitSalePrice ||
+    'N/A'
+  const declaredManufacturer =
+    activeScanData.extractedFields?.manufacturerName || activeScanData.manufacturer || 'N/A'
+
   return (
     <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto', position: 'relative' }}>
+      <Breadcrumb
+        items={[
+          { to: ROUTES.DASHBOARD, label: 'Dashboard' },
+          { to: ROUTES.SCAN, label: 'Scan Product' },
+          { label: 'Compliance Inspection' },
+        ]}
+      />
+
       {/* Top Header Actions Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <div>
           <PageHeader
-            title="Legal Metrology Compliance Intelligence"
-            subtitle={`Session ID: ${auditResult.inspectionId} | Commodity: ${auditResult.productName}`}
+            overline="Legal Metrology Compliance Intelligence"
+            title="Statutory Product Inspection"
+            subtitle={`Session ID: ${auditResult.inspectionId} | Commodity: ${productName}`}
           />
           {/* Category Selector Dropdown */}
           <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -188,9 +366,9 @@ export default function Compliance() {
                 cursor: 'pointer',
               }}
             >
-              <option value="Food">Food / Beverage (FSSAI Rules)</option>
-              <option value="Electronics">Electronics (BIS / CRS Rules)</option>
               <option value="General">General Commodity (Standard Rule 6)</option>
+              <option value="Food">Food & Beverages (FSSAI Rules)</option>
+              <option value="Electronics">Electronics & IT Goods (BIS / CRS Rules)</option>
             </select>
           </div>
         </div>
@@ -204,6 +382,42 @@ export default function Compliance() {
           </Button>
         </div>
       </div>
+
+      {/* Commodity Summary Banner */}
+      <Card style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', border: '1px solid #cbd5e1' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#2563eb', letterSpacing: '0.05em' }}>
+              Active Commodity Scan Data
+            </span>
+            <h2 style={{ margin: '0.2rem 0', fontSize: '1.3rem', color: '#0f172a', fontWeight: 700 }}>
+              {productName}
+            </h2>
+            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+              Barcode / EAN: <strong style={{ color: '#0f172a' }}>{barcode}</strong>
+              {activeScanData.metadata?.scannedAt && ` · Scanned: ${new Date(activeScanData.metadata.scannedAt).toLocaleTimeString()}`}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.85rem' }}>
+            <div>
+              <span style={{ display: 'block', color: '#64748b', fontSize: '0.75rem', fontWeight: 600 }}>Declared MRP</span>
+              <strong style={{ color: '#0f172a' }}>{declaredMrp}</strong>
+            </div>
+            <div>
+              <span style={{ display: 'block', color: '#64748b', fontSize: '0.75rem', fontWeight: 600 }}>Net Quantity</span>
+              <strong style={{ color: '#0f172a' }}>{declaredNetQty}</strong>
+            </div>
+            <div>
+              <span style={{ display: 'block', color: '#64748b', fontSize: '0.75rem', fontWeight: 600 }}>Declared USP</span>
+              <strong style={{ color: '#0f172a' }}>{declaredUsp}</strong>
+            </div>
+            <div>
+              <span style={{ display: 'block', color: '#64748b', fontSize: '0.75rem', fontWeight: 600 }}>Manufacturer / Packer</span>
+              <strong style={{ color: '#0f172a' }}>{declaredManufacturer}</strong>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Summary Metrics */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', margin: '1.5rem 0' }}>
@@ -220,7 +434,7 @@ export default function Compliance() {
           <div style={{ fontSize: '2rem', fontWeight: 600, color: '#f97316' }}>{auditResult.summary.warnings}</div>
         </Card>
         <Card>
-          <span style={{ fontSize: '0.9rem', color: '#6b7280' }}>Potential Non-Compliance</span>
+          <span style={{ fontSize: '0.9rem', color: '#6b7280' }}>Non-Compliance</span>
           <div style={{ fontSize: '2rem', fontWeight: 600, color: '#dc2626' }}>{auditResult.summary.potentialNonCompliance}</div>
         </Card>
       </div>
@@ -294,7 +508,7 @@ export default function Compliance() {
         </div>
       </Card>
 
-      {/* Built-in Modal Overlay */}
+      {/* Built-in Review Modal / Drawer */}
       {activePanelFinding && (
         <div
           style={{
@@ -349,6 +563,14 @@ export default function Compliance() {
                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Statutory Directive</span>
                   <div style={{ color: '#334155', fontSize: '0.85rem', lineHeight: 1.4 }}>{activePanelFinding.statutoryDirective}</div>
                 </div>
+                {activePanelFinding.extractedValue && (
+                  <div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Extracted OCR / Scanned Text</span>
+                    <div style={{ background: '#ffffff', padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', color: '#0f172a', fontFamily: 'monospace', fontSize: '0.85rem', marginTop: '0.2rem' }}>
+                      {activePanelFinding.extractedValue}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div style={{ background: '#fefce8', padding: '0.85rem', borderRadius: '6px', border: '1px solid #fef08a' }}>
@@ -371,23 +593,30 @@ export default function Compliance() {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '1rem 1.5rem', backgroundColor: '#f9fafb', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <div style={{ padding: '1rem 1.5rem', backgroundColor: '#f9fafb', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
               <Button variant="secondary" size="small" onClick={() => setActivePanelFinding(null)}>
                 Cancel
+              </Button>
+              <Button
+                variant="warning"
+                size="small"
+                onClick={() => handleOfficerOverride(activePanelFinding.ruleId, COMPLIANCE_STATUS.VERIFICATION_REQUIRED)}
+              >
+                Pending Clarification
               </Button>
               <Button
                 variant="danger"
                 size="small"
                 onClick={() => handleOfficerOverride(activePanelFinding.ruleId, COMPLIANCE_STATUS.POTENTIAL_NON_COMPLIANCE)}
               >
-                Confirm Violation
+                Non-Compliant (Violation)
               </Button>
               <Button
                 variant="primary"
                 size="small"
                 onClick={() => handleOfficerOverride(activePanelFinding.ruleId, COMPLIANCE_STATUS.VERIFIED)}
               >
-                Mark Verified
+                Verified Compliant
               </Button>
             </div>
           </div>
