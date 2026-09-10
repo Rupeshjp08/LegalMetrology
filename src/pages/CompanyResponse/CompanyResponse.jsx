@@ -57,24 +57,29 @@ export default function CompanyResponse() {
   const [errors, setErrors] = useState({})
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
 
   const handleChange = (name, value) => {
     setValues((prev) => ({ ...prev, [name]: value }))
     setErrors((prev) => ({ ...prev, [name]: undefined }))
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     const nextErrors = validate(values)
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
     setSubmitting(true)
-    window.setTimeout(() => {
-      submitResponse(record.id, values)
+    setSubmitError(null)
+    try {
+      await submitResponse(record.id, values)
       setSubmitting(false)
       setSuccess(true)
-    }, 700)
+    } catch (error) {
+      setSubmitting(false)
+      setSubmitError(error.message || 'Could not submit the response.')
+    }
   }
 
   if (loading) {
@@ -180,6 +185,11 @@ export default function CompanyResponse() {
               }
             >
               <form className="crsp-form" onSubmit={handleSubmit} noValidate>
+                {submitError && (
+                  <Alert tone="danger" title="Could not submit response" className="crsp-form__error">
+                    {submitError}
+                  </Alert>
+                )}
                 <fieldset className="crsp-form__fieldset">
                   <legend className="crsp-form__legend">
                     Response Type <span aria-hidden="true">*</span>

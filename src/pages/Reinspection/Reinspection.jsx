@@ -21,6 +21,7 @@ import {
   formatDate,
   RESPONSE_TYPE_LABELS,
   INSPECTION_RESULT_OPTIONS,
+  ENFORCEMENT_STATUS,
 } from '../../modules/enforcement'
 import { classNames } from '../../utils/classNames'
 import './Reinspection.css'
@@ -61,7 +62,8 @@ export default function Reinspection() {
   const [acting, setActing] = useState(false)
   const [notice, setNotice] = useState(null)
 
-  const isScheduled = Boolean(record?.reinspection?.date)
+  const isScheduled =
+    Boolean(record?.reinspection?.date) || record?.status === ENFORCEMENT_STATUS.REINSPECTION_SCHEDULED
   const hasResult = Boolean(record?.reinspection?.result)
 
   const handleOpenSchedule = () => {
@@ -91,15 +93,15 @@ export default function Reinspection() {
     return errors
   }
 
-  const handleSubmitSchedule = (event) => {
+  const handleSubmitSchedule = async (event) => {
     event.preventDefault()
     const nextErrors = validateSchedule()
     setScheduleErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
     setActing(true)
-    window.setTimeout(() => {
-      scheduleReinspection(record.id, {
+    try {
+      await scheduleReinspection(record.id, {
         date: scheduleValues.date,
         officerName: scheduleValues.officerName.trim(),
       })
@@ -110,7 +112,14 @@ export default function Reinspection() {
         title: 'Re-inspection scheduled',
         text: `Re-inspection scheduled for ${formatDate(scheduleValues.date)} with ${scheduleValues.officerName.trim()}. Status updated to Re-inspection Scheduled.`,
       })
-    }, 700)
+    } catch (error) {
+      setActing(false)
+      setNotice({
+        tone: 'danger',
+        title: 'Could not schedule re-inspection',
+        text: error.message || 'Something went wrong. Please try again.',
+      })
+    }
   }
 
   const validateResult = () => {
@@ -120,15 +129,15 @@ export default function Reinspection() {
     return errors
   }
 
-  const handleSubmitResult = (event) => {
+  const handleSubmitResult = async (event) => {
     event.preventDefault()
     const nextErrors = validateResult()
     setResultErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
     setActing(true)
-    window.setTimeout(() => {
-      submitReinspectionResult(record.id, {
+    try {
+      await submitReinspectionResult(record.id, {
         result: resultValues.result,
         remarks: resultValues.remarks.trim(),
       })
@@ -142,10 +151,17 @@ export default function Reinspection() {
             : 'Inspection result submitted — Still Violated',
         text:
           resultValues.result === 'compliant'
-            ? 'The re-inspection confirmed compliance. The case status is now Compliant.'
+            ? 'The re-inspection confirmed compliance. The case status is now Case Closed.'
             : 'The re-inspection confirmed the violation persists. The case status is now Violation Confirmed.',
       })
-    }, 700)
+    } catch (error) {
+      setActing(false)
+      setNotice({
+        tone: 'danger',
+        title: 'Could not submit inspection result',
+        text: error.message || 'Something went wrong. Please try again.',
+      })
+    }
   }
 
   if (loading) {

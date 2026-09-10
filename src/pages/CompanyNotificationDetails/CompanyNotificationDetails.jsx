@@ -41,6 +41,7 @@ export default function CompanyNotificationDetails() {
 
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [actionError, setActionError] = useState(null)
 
   if (loading) {
     return (
@@ -82,14 +83,28 @@ export default function CompanyNotificationDetails() {
   const statusMeta = STATUS_META[record.status] || {}
   const officer = record.inspection?.officer || {}
 
-  const handleSendNotification = () => {
+  const handleSendNotification = async () => {
     setSending(true)
     setSent(false)
-    window.setTimeout(() => {
-      sendNotification(record.id)
+    setActionError(null)
+    try {
+      await sendNotification(record.id)
       setSending(false)
       setSent(true)
-    }, 600)
+    } catch (error) {
+      setSending(false)
+      setActionError(error.message || 'Could not send the notification.')
+    }
+  }
+
+  const handleCloseCase = async () => {
+    setActionError(null)
+    try {
+      await closeCase(record.id)
+      setSent(false)
+    } catch (error) {
+      setActionError(error.message || 'Could not close the case.')
+    }
   }
 
   const responseType =
@@ -122,6 +137,12 @@ export default function CompanyNotificationDetails() {
         }
       />
 
+      {actionError && (
+        <Alert tone="danger" title="Action failed" className="cntd__alert">
+          {actionError}
+        </Alert>
+      )}
+
       {sent && (
         <Alert
           tone="success"
@@ -153,10 +174,7 @@ export default function CompanyNotificationDetails() {
           <Button
             variant="ghost"
             icon="check"
-            onClick={() => {
-              closeCase(record.id)
-              setSent(false)
-            }}
+            onClick={handleCloseCase}
           >
             Close Case
           </Button>

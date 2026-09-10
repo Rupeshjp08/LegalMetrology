@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { getVersion, subscribe } from './store'
 
 /**
- * Reactive data hook for the Member 4 store.
+ * Reactive data hook for Member 4.
  *
- * Simulates an async fetch (configurable delay) so the loading and error
- * states can be exercised without a backend, and re-runs the loader when
- * the store version changes (e.g. after a response or re-inspection update).
+ * Supports both sync loaders (legacy) and async loaders returning a Promise
+ * (backend API). Re-runs the loader when the store version changes (e.g. after
+ * a response or re-inspection update) so pages stay in sync with the backend.
  *
  * `loader` must be referentially stable – wrap it in useCallback.
  */
@@ -24,9 +24,10 @@ export function useEnforcementData(loader, options = {}) {
   const run = useCallback(() => {
     let cancelled = false
     setState((prev) => ({ data: prev.data, loading: true, error: null }))
-    const timer = window.setTimeout(() => {
+
+    const timer = window.setTimeout(async () => {
       try {
-        const data = loader()
+        const data = await loader()
         if (!cancelled) setState({ data, loading: false, error: null })
       } catch (error) {
         if (!cancelled) {
@@ -34,6 +35,7 @@ export function useEnforcementData(loader, options = {}) {
         }
       }
     }, delay)
+
     return () => {
       cancelled = true
       window.clearTimeout(timer)
@@ -57,11 +59,15 @@ export function toISODate(value) {
 }
 
 /**
- * Formats an ISO date (YYYY-MM-DD) for display, e.g. "12 Aug 2026".
+ * Formats an ISO date for display, e.g. "12 Aug 2026".
+ * Accepts Date, ISO datetime or YYYY-MM-DD strings.
  */
 export function formatDate(iso) {
   if (!iso) return '—'
-  const date = new Date(`${iso}T00:00:00`)
+  let date = iso instanceof Date ? iso : new Date(iso)
+  if (Number.isNaN(date.getTime())) {
+    date = new Date(`${iso}T00:00:00`)
+  }
   if (Number.isNaN(date.getTime())) return iso
   return date.toLocaleDateString('en-IN', {
     day: '2-digit',

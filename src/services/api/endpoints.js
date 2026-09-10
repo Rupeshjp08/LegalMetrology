@@ -54,6 +54,15 @@ export const ApiEndpoints = {
     AUDIT_LOGS: '/admin/audit-logs',
     SYSTEM_STATUS: '/admin/system-status',
   },
+  MEMBER4: {
+    NOTIFICATIONS: '/member4/notifications',
+    NOTIFICATION: (id) => `/member4/notifications/${id}`,
+    RESPONSES: '/member4/responses',
+    RESPONSES_BY_NOTIFICATION: (notificationId) => `/member4/responses/${notificationId}`,
+    REINSPECTIONS: '/member4/reinspections',
+    REINSPECTIONS_BY_NOTIFICATION: (notificationId) => `/member4/reinspections/notification/${notificationId}`,
+    REINSPECTION: (id) => `/member4/reinspections/${id}`,
+  },
 }
 
 export default ApiEndpoints
