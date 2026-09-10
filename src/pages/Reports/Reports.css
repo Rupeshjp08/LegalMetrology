@@ -98,7 +98,7 @@
 
 .reports-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: var(--space-4, 1rem);
 }
 
@@ -178,14 +178,100 @@
   margin: 0 0 0.35rem 0;
 }
 
+.reports-signature-block {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border-top: 2px dashed #cbd5e1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.reports-seal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reports-seal__circle {
+  width: 110px;
+  height: 110px;
+  border: 3px double #1e3a8a;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px;
+  color: #1e3a8a;
+  background-color: rgba(239, 246, 255, 0.5);
+}
+
+.reports-seal__text {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
+}
+
+.reports-seal__sub {
+  font-size: 0.55rem;
+  font-weight: 700;
+  margin-top: 4px;
+  letter-spacing: 0.05em;
+}
+
+.reports-signature {
+  min-width: 220px;
+  text-align: right;
+}
+
+.reports-signature__line {
+  border-bottom: 1.5px solid #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.reports-signature__name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.reports-signature__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.reports-signature__dept {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.reports-signature__date {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
 /* Print Stylesheet */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.5cm;
+  }
+
   body {
     background: #ffffff !important;
     color: #000000 !important;
+    font-size: 11pt;
   }
 
-  header, sidebar, nav, .no-print, .reports-header__actions {
+  header, sidebar, nav, .no-print, .reports-header__actions, breadcrumb {
     display: none !important;
   }
 
@@ -195,9 +281,14 @@
     margin: 0 !important;
   }
 
-  .reports-verdict-banner, .reports-checklist-item, card {
+  .reports-verdict-banner, .reports-checklist-item, .reports-signature-block {
     box-shadow: none !important;
-    border: 1px solid #000000 !important;
+    border: 1px solid #cbd5e1 !important;
     page-break-inside: avoid;
+  }
+
+  .reports-signature-block {
+    margin-top: 3rem !important;
+    border-top: 1px solid #000000 !important;
   }
 }

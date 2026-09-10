@@ -382,6 +382,26 @@ export default function Reports() {
         )}
       </Card>
 
+      {/* Official Certificate Seal & Inspector Signature Block */}
+      <div className="reports-signature-block">
+        <div className="reports-seal">
+          <div className="reports-seal__circle">
+            <span className="reports-seal__text">OFFICIAL SEAL OF LEGAL METROLOGY</span>
+            <span className="reports-seal__sub">GOVT. OF INDIA</span>
+          </div>
+        </div>
+
+        <div className="reports-signature">
+          <div className="reports-signature__line" />
+          <div className="reports-signature__name">{officerName}</div>
+          <div className="reports-signature__title">Inspector of Legal Metrology</div>
+          <div className="reports-signature__dept">Department of Consumer Affairs</div>
+          <div className="reports-signature__date">
+            Date: {new Date(inspectionDate || Date.now()).toLocaleDateString('en-IN')}
+          </div>
+        </div>
+      </div>
+
       {showNoticeModal && (
         <NoticeGenerator
           report={reportData}
