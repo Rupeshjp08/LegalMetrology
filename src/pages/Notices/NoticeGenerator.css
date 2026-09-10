@@ -1,0 +1,254 @@
+/* NoticeGenerator.css */
+.notice-container {
+  padding: var(--space-6, 1.5rem);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.notice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-4, 1rem);
+  margin-bottom: var(--space-6, 1.5rem);
+}
+
+.notice-header__actions {
+  display: flex;
+  gap: var(--space-3, 0.75rem);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.notice-config-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.notice-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.notice-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.notice-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.notice-field input,
+.notice-field select,
+.notice-field textarea {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #0f172a;
+  background-color: #ffffff;
+}
+
+.notice-field input:focus,
+.notice-field select:focus,
+.notice-field textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Formal Government Document Layout */
+.notice-memo-paper {
+  background-color: #ffffff;
+  border: 2px solid #0f172a;
+  border-radius: 4px;
+  padding: 3rem 3.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  color: #0f172a;
+  font-family: 'Times New Roman', Times, Georgia, serif;
+  line-height: 1.6;
+}
+
+.notice-memo-header {
+  text-align: center;
+  border-bottom: 2px double #0f172a;
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.notice-memo-header__emblem {
+  font-size: 2.2rem;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.notice-memo-header__govt {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.notice-memo-header__dept {
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin: 0.25rem 0 0 0;
+  color: #334155;
+}
+
+.notice-memo-meta {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.notice-memo-title {
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-decoration: underline;
+  margin: 1.5rem 0;
+  letter-spacing: 0.02em;
+}
+
+.notice-memo-recipient {
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+.notice-memo-subject {
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  font-size: 1.05rem;
+  background-color: #f8fafc;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #0f172a;
+}
+
+.notice-memo-body {
+  font-size: 1rem;
+  text-align: justify;
+}
+
+.notice-memo-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.notice-memo-table th,
+.notice-memo-table td {
+  border: 1px solid #0f172a;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.notice-memo-table th {
+  background-color: #f1f5f9;
+  font-weight: 700;
+}
+
+.notice-memo-penalty {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #991b1b;
+  text-align: center;
+}
+
+.notice-memo-signatory {
+  margin-top: 3.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.notice-memo-seal {
+  width: 110px;
+  height: 110px;
+  border: 2px dashed #94a3b8;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.notice-memo-signature {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Modal Overlay Wrapper when launched inside Reports */
+.notice-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  z-index: 99999;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+
+.notice-modal-content {
+  background: #ffffff;
+  border-radius: 12px;
+  max-width: 1050px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  header, sidebar, nav, .no-print, .notice-config-card, .notice-header, .notice-modal-overlay {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .notice-memo-paper {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+}
